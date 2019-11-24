@@ -98,7 +98,7 @@ def get_lines(today_date):
 	lines['ML'] = np.select([lines['Close']>0,lines['Close']<0],[lines['Close']/100,-100/lines['Close']],1)
 	lines['OU'] = lines['Close OU']
 	lines['RL'] = lines['Run Line']
-	lines['F5_OU'] = round_up(lines['OU'],0.5)
+	lines['F5_OU'] = round_up(lines['OU']/2,0.5)
 	lines['Pitcher'],lines['P_Hand'] = lines['Pitcher'].str.split('-',1).str
 	lines = lines.replace(['CUB','KAN','SDG','SFO','TAM','WAS','HOW'],['CHC','KC','SD','SF','TB','WSH','HOU'])
 	lines['Opp_Team'] = np.select([lines['VH']=='V',lines['VH']=='H',(lines['VH']=='N')&(lines['Date']==lines['Date'].shift()),(lines['VH']=='N')&(lines['Date']==lines['Date'].shift(-1))],[lines['Team'].shift(-1),lines['Team'].shift(),lines['Team'].shift(),lines['Team'].shift(-1)],0)
