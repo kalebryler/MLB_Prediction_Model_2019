@@ -28,12 +28,6 @@ def round_up(x, a):
 def round_down(x, a):
 	return np.floor(x/a)*a
 
-def print_out(d):
-	for a,b in d:
-		print(a + ':')
-		print(b)
-
-
 def segment(x,y,train_pct):
 	new_data = np.concatenate((x,y),axis=1)
 	num = new_data.shape[0]
@@ -125,8 +119,8 @@ def get_inputs_outputs(df):
 		d[outcome] = {}
 
 		inputs = df[var_list]
-		# outputs = df[['True_'+outcome]]
-		outputs = df[[outcome]]
+		outputs = df[['True_'+outcome]]
+		# outputs = df[[outcome]]
 		try:
 			ml = df[[outcome + "_ML"]]
 		except:
@@ -197,6 +191,8 @@ class NeuralNet:
 		self.y = y
 		self.ml = ml
 
+		self.input_size = self.x.shape[1]
+
 		self.x_train, self.x_test, self.y_train, self.y_test, self.ml_train, self.ml_test = train_test_split(self.x, self.y, self.ml, test_size = 0.25)
 
 	def model(self):
@@ -210,25 +206,23 @@ class NeuralNet:
 		self.y_train = encoder.transform(self.y_train.ravel())
 		self.y_test = encoder.transform(self.y_test.ravel())
 
+		self.output_size = len(set(self.y_train))
 
-		net = MLPClassifier(hidden_layer_sizes=(1000, 500, 100), max_iter=10000)
+		net = MLPClassifier(hidden_layer_sizes=(int(round_up(self.input_size,100)),int(round_up(self.input_size/2,100)),int(round_up(self.input_size/5,100))), max_iter=10000)
 		fit = net.fit(self.x_train, self.y_train.ravel())
 		predictions = fit.predict(self.x_test)
 
-		# print(confusion_matrix(self.y_test,predictions))
 		self.metrics = classification_report(self.y_test,predictions)
 
 		self.results = pd.DataFrame([predictions,self.y_test,self.ml_test.ravel()]).T
 
 		self.results.columns = ['Predicted','Actual','ML']
 		self.results['Error'] = abs(self.results['Predicted']-self.results['Actual'])
-		self.results['Success'] = np.select([round_up(self.results['Predicted']-0.05,0.5)==self.results['Actual'],round_down(self.results['Predicted']+0.05,0.5)==self.results['Actual']],[1,1],0)
-		self.results['Payout'] = np.select([self.results['Success']==1,self.results['Success']==0],[self.results['ML'],-self.results['ML']],0)
-
-		# print(self.results)
-		# print("Error: " + '{:.2%}'.format(self.results['Error'].mean()))
-		# print("Accuracy: " + '{:.2%}'.format(self.results['Success'].mean()))
-		# print("Profit: " + '{:.2%}'.format(self.results['Payout'].mean()))
+		if self.output_size <= 2:
+			self.results['Success'] = np.where(self.results['Predicted']==self.results['Actual'],1,0)
+		else:
+			self.results['Success'] = np.where(self.results['Error']<=1,1,0)
+		self.results['Payout'] = np.select([self.results['Success']==1,self.results['Success']==0],[self.results['ML'],-1],0)
 
 		self.error = self.results['Error'].mean()
 		self.accuracy = self.results['Success'].mean()
@@ -254,26 +248,18 @@ class SVM:
 		self.y_train = encoder.transform(self.y_train.ravel())
 		self.y_test = encoder.transform(self.y_test.ravel())
 
-
 		net = svm.SVR(gamma='auto')
 		fit = net.fit(self.x_train, self.y_train.ravel())
 		predictions = fit.predict(self.x_test)
 
 		self.metrics = average_precision_score(self.y_test, predictions)
 
-		# print('Average precision-recall score: {0:0.2f}'.format(average_precision))
-
 		self.results = pd.DataFrame([predictions,self.y_test,self.ml_test.ravel()]).T
 
 		self.results.columns = ['Predicted','Actual','ML']
 		self.results['Error'] = abs(self.results['Predicted']-self.results['Actual'])
 		self.results['Success'] = np.select([round_up(self.results['Predicted']-0.05,0.5)==self.results['Actual'],round_down(self.results['Predicted']+0.05,0.5)==self.results['Actual']],[1,1],0)
-		self.results['Payout'] = np.select([self.results['Success']==1,self.results['Success']==0],[self.results['ML'],-self.results['ML']],0)
-
-		# print(self.results)
-		# print("Error: " + '{:.2%}'.format(self.results['Error'].mean()))
-		# print("Accuracy: " + '{:.2%}'.format(self.results['Success'].mean()))
-		# print("Profit: " + '{:.2%}'.format(self.results['Payout'].mean()))
+		self.results['Payout'] = np.select([self.results['Success']==1,self.results['Success']==0],[self.results['ML'],-1],0)
 
 		self.error = self.results['Error'].mean()
 		self.accuracy = self.results['Success'].mean()
