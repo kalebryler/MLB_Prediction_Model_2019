@@ -8,24 +8,25 @@ import math
 import csv
 import pandas as pd
 from statistics import mean
-import collections
 import unicodedata
 import re
-from collections import Counter
 import json
 import ast
 from pandas.io.json import json_normalize
-from collections import defaultdict
-from functools import reduce
 import numpy as np
 from numpy import inf
-from selenium import webdriver
-import matplotlib.pyplot as plt
 import warnings
 from unidecode import unidecode
 import pytz
+import os
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+try:
+	os.chdir('/Users/kalebryler/Desktop/MLB_Project')
+except:
+	os.mkdir('/Users/kalebryler/Desktop/MLB_Project')
+	os.chdir('/Users/kalebryler/Desktop/MLB_Project')
 
 def merge(d1, d2):
     for k, v in d1.items():
@@ -72,6 +73,12 @@ def count_(li):
 	new4 = [x for x in new3 if x==x]
 	return len(new3) if len(new4)>0 else 0
 
+def round_up(x, a):
+	return np.ceil(x/a)*a
+
+def round_down(x, a):
+	return np.floor(x/a)*a
+
 def get_lines(today_date):
 	out = {}
 	line_url = "https://www.sportsbookreviewsonline.com/scoresoddsarchives/mlb/mlb%20odds%202019.xlsx"
@@ -91,6 +98,7 @@ def get_lines(today_date):
 	lines['ML'] = np.select([lines['Close']>0,lines['Close']<0],[lines['Close']/100,-100/lines['Close']],1)
 	lines['OU'] = lines['Close OU']
 	lines['RL'] = lines['Run Line']
+	lines['F5_OU'] = round_up(lines['OU'],0.5)
 	lines['Pitcher'],lines['P_Hand'] = lines['Pitcher'].str.split('-',1).str
 	lines = lines.replace(['CUB','KAN','SDG','SFO','TAM','WAS','HOW'],['CHC','KC','SD','SF','TB','WSH','HOU'])
 	lines['Opp_Team'] = np.select([lines['VH']=='V',lines['VH']=='H',(lines['VH']=='N')&(lines['Date']==lines['Date'].shift()),(lines['VH']=='N')&(lines['Date']==lines['Date'].shift(-1))],[lines['Team'].shift(-1),lines['Team'].shift(),lines['Team'].shift(),lines['Team'].shift(-1)],0)
@@ -107,7 +115,7 @@ def get_lines(today_date):
 	lines['Opp_7th'] = np.select([lines['VH']=='V',lines['VH']=='H',(lines['VH']=='N')&(lines['Date']==lines['Date'].shift()),(lines['VH']=='N')&(lines['Date']==lines['Date'].shift(-1))],[lines['7th'].shift(-1),lines['7th'].shift(),lines['7th'].shift(),lines['7th'].shift(-1)],0)
 	lines['Opp_8th'] = np.select([lines['VH']=='V',lines['VH']=='H',(lines['VH']=='N')&(lines['Date']==lines['Date'].shift()),(lines['VH']=='N')&(lines['Date']==lines['Date'].shift(-1))],[lines['8th'].shift(-1),lines['8th'].shift(),lines['8th'].shift(),lines['8th'].shift(-1)],0)
 	lines['Opp_9th'] = np.select([lines['VH']=='V',lines['VH']=='H',(lines['VH']=='N')&(lines['Date']==lines['Date'].shift()),(lines['VH']=='N')&(lines['Date']==lines['Date'].shift(-1))],[lines['9th'].shift(-1),lines['9th'].shift(),lines['9th'].shift(),lines['9th'].shift(-1)],0)
-	lines = lines[['Date','Team','Pitcher','P_Hand','Opp_Pitcher','vs_Left','vs_Right','ML','RL','RL_ML','OU','Over_ML','Under_ML','1st','2nd','3rd','4th','5th','6th','7th','8th','9th','Opp_1st','Opp_2nd','Opp_3rd','Opp_4th','Opp_5th','Opp_6th','Opp_7th','Opp_8th','Opp_9th']]
+	lines = lines[['Date','Team','Pitcher','P_Hand','Opp_Pitcher','vs_Left','vs_Right','ML','RL','RL_ML','OU','F5_OU','Over_ML','Under_ML','1st','2nd','3rd','4th','5th','6th','7th','8th','9th','Opp_1st','Opp_2nd','Opp_3rd','Opp_4th','Opp_5th','Opp_6th','Opp_7th','Opp_8th','Opp_9th']]
 	out['Last_Date'] = lines['Date'].iloc[-1]
 	out['Current_Date'] = today_date
 	lines = lines.set_index(['Date','Team'])
@@ -196,7 +204,7 @@ def get_missing_lines(missing_dates):
 		except:
 			pass
 
-	###functionality for scraping inning scores needs to be added###
+	###functionality for scraping inning scores needs to be added for next season###
 
 	lines = pd.DataFrame.from_dict(info,orient='index')
 
@@ -237,14 +245,6 @@ def get_game_logs_primary(old_lines,missing_lines,given_date):
 
 		gl_temp = pd.concat([team_lines, gl1], axis=1, sort=True)
 
-		# indices1 = gl1.index.tolist()
-		# last_date1 = indices1[-1]
-		# new_last_date_1 = datetime.strptime(last_date1,"%m/%d")-timedelta(days=1)
-		# new_last_date1 = new_last_date_1.strftime("%m/%d")
-		# del indices1[-1]
-		# indices1.append(new_last_date1)
-		# gl1.index = indices1
-
 		url2 = 'https://www.foxsports.com/mlb/'+str(i).replace('.','').replace(' ','-').lower()+'-team-game-log?season=2019&category=PITCHER&seasonType=1'
 		gl2 = pd.read_html(url2, header=0, index_col='Date')[0]
 		gl2 = gl2.loc[~gl2.index.duplicated(keep='first')]
@@ -252,14 +252,6 @@ def get_game_logs_primary(old_lines,missing_lines,given_date):
 		gl2['Score'] = (gl2['BB'].mul(0.85)+gl2['H'].mul(1.25)+gl2['HR'].mul(2.15)+gl2['ER'].mul(1.75)+(gl2['R']-gl2['ER']).mul(1.25)-gl2['SO'].mul(0.66))/gl2['BFP']
 		gl2['Pitch_Rating'] = (0.5-gl2['Score'])/0.5
 		gl2 = gl2[['Pitch_Rating']]
-
-		# indices2 = gl2.index.tolist()
-		# last_date2 = indices2[-1]
-		# new_last_date_2 = datetime.strptime(last_date2,"%m/%d")-timedelta(days=1)
-		# new_last_date2 = new_last_date_2.strftime("%m/%d")
-		# del indices2[-1]
-		# indices2.append(new_last_date2)
-		# gl2.index = indices2
 
 		gl_new = pd.concat([gl_temp, gl2], axis=1, sort=True)
 		gl_new = gl_new.loc[~gl_new.index.duplicated(keep='first')][:new_tomorrow]
@@ -297,18 +289,25 @@ def get_game_logs_primary(old_lines,missing_lines,given_date):
 		gl_new['Final'] = gl_new['Scores'].str.split('-').str[0].astype(float)
 		gl_new['Opp_Final'] = gl_new['Scores'].str.split('-').str[1].astype(float)
 		gl_new['Total_Runs'] = gl_new['Final']+gl_new['Opp_Final']
+		gl_new['F5_Team_Runs'] = gl_new['1st']+gl_new['2nd']+gl_new['3rd']+gl_new['4th']+gl_new['5th']
+		gl_new['F5_Opp_Team_Runs'] = gl_new['Opp_1st']+gl_new['Opp_2nd']+gl_new['Opp_3rd']+gl_new['Opp_4th']+gl_new['Opp_5th']
+		gl_new['F5_Total_Runs'] = gl_new['F5_Team_Runs']+gl_new['F5_Opp_Team_Runs']
 		gl_new['Margin'] = gl_new['Final']-gl_new['Opp_Final']
 		gl_new['OU_Margin'] = gl_new['Total_Runs']-gl_new['OU']
 		gl_new['Over'] = np.where(gl_new['OU_Margin']>0,1,-1)
+		gl_new['F5_OU_Margin'] = gl_new['F5_Total_Runs']-gl_new['F5_OU']
+		gl_new['F5_Over'] = np.where(gl_new['F5_OU_Margin']>0,1,-1)
 		gl_new['Cover_Margin'] = gl_new['Margin']+gl_new['RL']
 		gl_new['Cover'] = np.where(gl_new['Cover_Margin']>0,1,-1)
 		gl_new['Blowout_Win'] = np.where((gl_new['Win']==1)&(gl_new['Margin']>3.5),1,0)
 		gl_new['Blowout_Loss'] = np.where((gl_new['Win']==-1)&(gl_new['Margin']<-3.5),1,0)
 		gl_new['ML_Payout'] = np.where(gl_new['Win']==1,gl_new['ML'],-1)
 		gl_new['OU_Payout'] = np.where(gl_new['Over']==1,gl_new['Over_ML'],gl_new['Under_ML'])
+		gl_new['F5_OU_Payout'] = np.where(gl_new['F5_Over']==1,gl_new['Over_ML'],gl_new['Under_ML'])
 		gl_new['RL_Payout'] = np.where(gl_new['Cover']==1,gl_new['RL_ML'],-1)
 		gl_new['True_Win'] = np.select([(gl_new['Win']==1)&(gl_new['Blowout_Win']==1),(gl_new['Win']==1)&(gl_new['Margin']>1.5)&(gl_new['Blowout_Win']==0),(gl_new['Win']==-1)&(gl_new['Margin']<-1.5)&(gl_new['Blowout_Loss']==0),(gl_new['Win']==-1)&(gl_new['Blowout_Loss']==1)],[1.5,1,-1,-1.5],0)
 		gl_new['True_Over'] = np.select([(gl_new['Over']==1)&(gl_new['OU_Margin']>2.5),(gl_new['Over']==1)&(gl_new['OU_Margin']>1)&(gl_new['OU_Margin']<=2.5),(gl_new['Over']==-1)&(gl_new['OU_Margin']<-1)&(gl_new['OU_Margin']>=-2.5),(gl_new['Over']==-1)&(gl_new['OU_Margin']<-2.5)],[1.5,1,-1,-1.5],0)
+		gl_new['True_F5_Over'] = np.select([(gl_new['F5_Over']==1)&(gl_new['F5_OU_Margin']>1.5),(gl_new['F5_Over']==1)&(gl_new['F5_OU_Margin']>0.5)&(gl_new['F5_OU_Margin']<=1.5),(gl_new['F5_Over']==-1)&(gl_new['F5_OU_Margin']<-0.5)&(gl_new['F5_OU_Margin']>=-1.5),(gl_new['F5_Over']==-1)&(gl_new['F5_OU_Margin']<-1.5)],[1.5,1,-1,-1.5],0)
 		gl_new['True_Cover'] = np.select([(gl_new['Cover']==1)&(gl_new['Cover_Margin']>2.5),(gl_new['Cover']==1)&(gl_new['Cover_Margin']>1)&(gl_new['Cover_Margin']<=2.5),(gl_new['Cover']==-1)&(gl_new['Cover_Margin']<-1)&(gl_new['Cover_Margin']>=-2.5),(gl_new['Cover']==-1)&(gl_new['Cover_Margin']<-2.5)],[1.5,1,-1,-1.5],0)
 		gl_new['True_Hit'] = np.select([gl_new['True_Win']==1.5,gl_new['True_Win']==1,gl_new['True_Win']==-1,gl_new['True_Win']==-1.5],[gl_new['Hit_Rating']+0.2,gl_new['Hit_Rating']+0.1,gl_new['Hit_Rating']-0.1,gl_new['Hit_Rating']-0.2],gl_new['Hit_Rating'])
 		gl_new['True_Pitch'] = np.select([gl_new['True_Win']==1.5,gl_new['True_Win']==1,gl_new['True_Win']==-1,gl_new['True_Win']==-1.5],[gl_new['Pitch_Rating']+0.2,gl_new['Pitch_Rating']+0.1,gl_new['Pitch_Rating']-0.1,gl_new['Pitch_Rating']-0.2],gl_new['Pitch_Rating'])
@@ -317,6 +316,12 @@ def get_game_logs_primary(old_lines,missing_lines,given_date):
 
 	opp_records = pd.concat(record_by_date,axis=1,sort=False)
 	out['Record_By_Date'] = opp_records.to_json(orient='index')
+
+	try:
+		os.chdir('/Users/kalebryler/Desktop/MLB_Project/Game_Log_Files')
+	except:
+		os.mkdir('/Users/kalebryler/Desktop/MLB_Project/Game_Log_Files')
+		os.chdir('/Users/kalebryler/Desktop/MLB_Project/Game_Log_Files')
 
 	with open('game_logs_primary.txt', 'w') as file:
 		file.write(json.dumps(out))
@@ -343,6 +348,7 @@ def get_game_logs_secondary(primary_logs,given_date):
 		gl['Series_Pitch'] = np.select([gl['Game_1']==1,gl['Game_2']==1,gl['Game_3']==1,gl['Game_4']==1],[0,gl['True_Pitch'].shift(),gl['True_Pitch'].shift().rolling(2,min_periods=1).sum(),gl['True_Pitch'].shift().rolling(3,min_periods=1).sum()],0)
 		gl['Series_Net'] = np.select([gl['Game_1']==1,gl['Game_2']==1,gl['Game_3']==1,gl['Game_4']==1],[0,gl['Net_Rating'].shift(),gl['Net_Rating'].shift().rolling(2,min_periods=1).sum(),gl['Net_Rating'].shift().rolling(3,min_periods=1).sum()],0)
 		gl['Series_Over'] = np.select([gl['Game_1']==1,gl['Game_2']==1,gl['Game_3']==1,gl['Game_4']==1],[0,gl['True_Over'].shift(),gl['True_Over'].shift().rolling(2,min_periods=1).sum(),gl['True_Over'].shift().rolling(3,min_periods=1).sum()],0)
+		gl['Series_F5_Over'] = np.select([gl['Game_1']==1,gl['Game_2']==1,gl['Game_3']==1,gl['Game_4']==1],[0,gl['True_F5_Over'].shift(),gl['True_F5_Over'].shift().rolling(2,min_periods=1).sum(),gl['True_F5_Over'].shift().rolling(3,min_periods=1).sum()],0)
 		gl['Series_Cover'] = np.select([gl['Game_1']==1,gl['Game_2']==1,gl['Game_3']==1,gl['Game_4']==1],[0,gl['True_Cover'].shift(),gl['True_Cover'].shift().rolling(2,min_periods=1).sum(),gl['True_Cover'].shift().rolling(3,min_periods=1).sum()],0)
 		gl['Opp_Win_Pct'] = record_by_date.lookup(gl.index.astype(str), gl['Opp_Team'])
 		gl['Win_Pct_Diff'] = gl['Win_Pct']-gl['Opp_Win_Pct']
@@ -355,13 +361,12 @@ def get_game_logs_secondary(primary_logs,given_date):
 		gl['Favorite'] = np.where(gl['ML']<0.8,1,0)
 		gl['Close'] = np.where((gl['ML']>=0.8)&(gl['ML']<=1.2),1,0)
 		gl['Underdog'] = np.where(gl['ML']>1.2,1,0)
-		gl['Yesterday_Win_Profile'] = gl['True_Win'].shift()
-		gl['Yesterday_Over_Profile'] = gl['True_Over'].shift()
 		gl['Matchup_Profile'] = np.select([gl['In_Division']==1,gl['Interleague']==1],['In_Division','Interleague'],'In_League')
 		gl['Series_Win_Classifier'] = np.select([gl['Series_Win']>1,gl['Series_Win']>0.33,gl['Series_Win']<-1,gl['Series_Win']<-0.33],[2,1,-1,-2],0)
 		gl['Series_Hit_Classifier'] = np.select([gl['Series_Hit']>0.75,gl['Series_Hit']>0.2,gl['Series_Hit']<-0.75,gl['Series_Hit']<-0.2],[2,1,-1,-2],0)
 		gl['Series_Pitch_Classifier'] = np.select([gl['Series_Pitch']>0.75,gl['Series_Pitch']>0.2,gl['Series_Pitch']<-0.75,gl['Series_Pitch']<-0.2],[2,1,-1,-2],0)
 		gl['Series_Over_Classifier'] = np.select([gl['Series_Over']>1,gl['Series_Over']>0.33,gl['Series_Over']<-1,gl['Series_Over']<-0.33],[2,1,-1,-2],0)
+		gl['Series_F5_Over_Classifier'] = np.select([gl['Series_F5_Over']>1,gl['Series_F5_Over']>0.33,gl['Series_F5_Over']<-1,gl['Series_F5_Over']<-0.33],[2,1,-1,-2],0)
 		gl['Series_Cover_Classifier'] = np.select([gl['Series_Cover']>1,gl['Series_Cover']>0.33,gl['Series_Cover']<-1,gl['Series_Cover']<-0.33],[2,1,-1,-2],0)
 		gl['Game_Number'] = np.select([gl['Game_1']==1,gl['Game_2']==1,gl['Game_3']==1,gl['Game_4']==1],[1,2,3,4],0)
 		gl['Betting_Profile'] = np.select([gl['Favorite']==1,gl['Underdog']==1,gl['Close']==1],['Favorite','Underdog','Close'])
@@ -370,59 +375,35 @@ def get_game_logs_secondary(primary_logs,given_date):
 		gl = gl.replace([np.inf, -np.inf], np.nan)
 		gl.drop(['Team_Good','Team_Middle','Team_Bad','Opp_Team_Good','Opp_Team_Middle','Opp_Team_Bad','Favorite','Close','Underdog'], axis=1, inplace=True)
 
-		for stat in ['Win','Hit','Pitch','Over','Cover']:
+		for stat in ['Win','Hit','Pitch','Over','F5_Over','Cover']:
 
 			new_stat = 'True_'+str(stat)
 
-			overall = 'Overall_30_'+str(stat)
-			gl[overall] = gl[new_stat].rolling(30,min_periods=1).mean().reset_index(drop=True)
+			overall_1 = 'Overall_30_'+str(stat)
+			gl[overall_1] = gl[new_stat].rolling(30,min_periods=1).mean()
 
-			overall = 'Overall_15_'+str(stat)
-			gl[overall] = gl[new_stat].rolling(15,min_periods=1).mean().reset_index(drop=True)
+			overall_2 = 'Overall_15_'+str(stat)
+			gl[overall_2] = gl[new_stat].rolling(15,min_periods=1).mean()
 
 			home_away = 'Home_Away_'+str(stat)
-			gl[home_away] = gl.groupby('Home',as_index=False)[new_stat].rolling(20,min_periods=1).mean().reset_index(drop=True)
+			gl[home_away] = gl.groupby('Home')[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
 
 			right_left = 'Right_Left_'+str(stat)
-			gl[right_left] = gl.groupby('vs_Right')[new_stat].rolling(20,min_periods=1).mean().reset_index(drop=True)
-
-			pitcher = 'Pitcher_'+str(stat)
-			gl[pitcher] = gl.groupby('Pitcher')[new_stat].rolling(7,min_periods=1).mean().reset_index(drop=True)
-
-			pitcher_home_away = 'Pitcher_Home_Away_'+str(stat)
-			gl[pitcher_home_away] = gl.groupby(['Pitcher','Home'])[new_stat].rolling(5,min_periods=1).mean().reset_index(drop=True)
+			gl[right_left] = gl.groupby('vs_Right')[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
 
 			series_by_game = 'Series_By_Game_'+str(stat)
-			gl[series_by_game] = gl.groupby(['Game_Number','Series_Win_Classifier'])[new_stat].rolling(15,min_periods=1).mean().reset_index(drop=True)
+			gl[series_by_game] = gl.groupby(['Game_Number','Series_Win_Classifier'],as_index=False)[new_stat].rolling(15,min_periods=1).mean().reset_index(0,drop=True)
 
 			betting_profile = 'Betting_Profile_'+str(stat)
-			gl[betting_profile] = gl.groupby(['Betting_Profile'])[new_stat].rolling(20,min_periods=1).mean().reset_index(drop=True)
+			gl[betting_profile] = gl.groupby('Betting_Profile')[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
 
 			opp_team_profile = 'Opp_Team_Profile_'+str(stat)
-			gl[opp_team_profile] = gl.groupby(['Opp_Team_Profile'])[new_stat].rolling(20,min_periods=1).mean().reset_index(drop=True)
+			gl[opp_team_profile] = gl.groupby('Opp_Team_Profile')[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
 
 			matchup_profile = 'Matchup_Profile_'+str(stat)
-			gl[matchup_profile] = gl.groupby(['Matchup_Profile','Home'])[new_stat].rolling(20,min_periods=1).mean().reset_index(drop=True)
+			gl[matchup_profile] = gl.groupby(['Matchup_Profile','Home'],as_index=False)[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
 
-			v_team = 'vs_Team_'+str(stat)
-			gl[v_team] = gl.groupby('Opp_Team')[new_stat].rolling(5,min_periods=1).mean().reset_index(drop=True)
-
-			pitcher_betting_profile = 'Pitcher_Betting_Profile_'+str(stat)
-			gl[pitcher_betting_profile] = gl.groupby(['Pitcher','Betting_Profile'])[new_stat].rolling(5,min_periods=1).mean().reset_index(drop=True)
-
-			pitcher_opp_team_profile = 'Pitcher_Opp_Team_Profile_'+str(stat)
-			gl[pitcher_opp_team_profile] = gl.groupby(['Pitcher','Opp_Team_Profile'])[new_stat].rolling(5,min_periods=1).mean().reset_index(drop=True)
-
-			pitcher_matchup_profile = 'Pitcher_Matchup_Profile_'+str(stat)
-			gl[pitcher_matchup_profile] = gl.groupby(['Pitcher','Matchup_Profile','Home'])[new_stat].rolling(5,min_periods=1).mean().reset_index(drop=True)
-
-			pitcher_v_team = 'Pitcher_vs_Team_'+str(stat)
-			gl[pitcher_v_team] = gl.groupby(['Pitcher','Opp_Team'])[new_stat].rolling(5,min_periods=1).mean().reset_index(drop=True)
-
-		for num in range(1,6):
-			for stat in ['Win','Hit','Pitch','Over','Cover']:
-
-				new_stat = 'True_'+str(stat)
+			for num in range(1,6):
 
 				overall = 'Overall_'+str(stat)+'_'+str(num)
 				gl[overall] = gl[new_stat].shift(num)
@@ -437,34 +418,34 @@ def get_game_logs_secondary(primary_logs,given_date):
 				gl[pitcher] = gl.groupby('Pitcher')[new_stat].shift(num)
 
 				pitcher_home_away = 'Pitcher_Home_Away_'+str(stat)+'_'+str(num)
-				gl[pitcher_home_away] = gl.groupby(['Pitcher','Home'])[new_stat].shift(num)
+				gl[pitcher_home_away] = gl.groupby(['Pitcher','Home'],as_index=False)[new_stat].shift(num)
 
 				series_by_game = 'Series_By_Game_'+str(stat)+'_'+str(num)
-				gl[series_by_game] = gl.groupby(['Game_Number','Series_Win_Classifier'])[new_stat].shift(num)
+				gl[series_by_game] = gl.groupby(['Game_Number','Series_Win_Classifier'],as_index=False)[new_stat].shift(num)
 
 				betting_profile = 'Betting_Profile_'+str(stat)+'_'+str(num)
-				gl[betting_profile] = gl.groupby(['Betting_Profile'])[new_stat].shift(num)
+				gl[betting_profile] = gl.groupby('Betting_Profile')[new_stat].shift(num)
 
 				opp_team_profile = 'Opp_Team_Profile_'+str(stat)+'_'+str(num)
-				gl[opp_team_profile] = gl.groupby(['Opp_Team_Profile'])[new_stat].shift(num)
+				gl[opp_team_profile] = gl.groupby('Opp_Team_Profile')[new_stat].shift(num)
 
 				matchup_profile = 'Matchup_Profile_'+str(stat)+'_'+str(num)
-				gl[matchup_profile] = gl.groupby(['Matchup_Profile','Home'])[new_stat].shift(num)
+				gl[matchup_profile] = gl.groupby(['Matchup_Profile','Home'],as_index=False)[new_stat].shift(num)
 
 				v_team = 'vs_Team_'+str(stat)+'_'+str(num)
 				gl[v_team] = gl.groupby('Opp_Team')[new_stat].shift(num)
 
 				pitcher_betting_profile = 'Pitcher_Betting_Profile_'+str(stat)+'_'+str(num)
-				gl[pitcher_betting_profile] = gl.groupby(['Pitcher','Betting_Profile'])[new_stat].shift(num)
+				gl[pitcher_betting_profile] = gl.groupby(['Pitcher','Betting_Profile'],as_index=False)[new_stat].shift(num)
 
 				pitcher_opp_team_profile = 'Pitcher_Opp_Team_Profile_'+str(stat)+'_'+str(num)
-				gl[pitcher_opp_team_profile] = gl.groupby(['Pitcher','Opp_Team_Profile'])[new_stat].shift(num)
+				gl[pitcher_opp_team_profile] = gl.groupby(['Pitcher','Opp_Team_Profile'],as_index=False)[new_stat].shift(num)
 
 				pitcher_matchup_profile = 'Pitcher_Matchup_Profile_'+str(stat)+'_'+str(num)
-				gl[pitcher_matchup_profile] = gl.groupby(['Pitcher','Matchup_Profile','Home'])[new_stat].shift(num)
+				gl[pitcher_matchup_profile] = gl.groupby(['Pitcher','Matchup_Profile','Home'],as_index=False)[new_stat].shift(num)
 
 				pitcher_v_team = 'Pitcher_vs_Team_'+str(stat)+'_'+str(num)
-				gl[pitcher_v_team] = gl.groupby(['Pitcher','Opp_Team'])[new_stat].shift(num)
+				gl[pitcher_v_team] = gl.groupby(['Pitcher','Opp_Team'],as_index=False)[new_stat].shift(num)
 
 		gl['Team_Name'] = i
 		all_teams.append(gl)
@@ -475,98 +456,75 @@ def get_game_logs_secondary(primary_logs,given_date):
 	total_df.set_index(['Date','Team_Name'],inplace=True)
 	total_df = total_df.sort_values('Date')
 
-	for stat in ['Win','Hit','Pitch','Over','Cover']:
+	for stat in ['Win','Hit','Pitch','Over','F5_Over','Cover']:
 
 		new_stat = 'True_'+str(stat)
 
-		opp_team_overall = 'Opp_Team_Overall_30_'+str(stat)
-		total_df[opp_team_overall] = total_df.groupby('Opp_Team')[new_stat].rolling(30,min_periods=1).mean().reset_index(drop=True)
+		opp_team_overall_1 = 'Opp_Team_Overall_30_'+str(stat)
+		total_df[opp_team_overall_1] = total_df.groupby('Opp_Team')[new_stat].rolling(30,min_periods=1).mean().reset_index(0,drop=True)
 
-		opp_team_overall = 'Opp_Team_Overall_15_'+str(stat)
-		total_df[opp_team_overall] = total_df.groupby('Opp_Team')[new_stat].rolling(15,min_periods=1).mean().reset_index(drop=True)
+		opp_team_overall_2 = 'Opp_Team_Overall_15_'+str(stat)
+		total_df[opp_team_overall_2] = total_df.groupby('Opp_Team')[new_stat].rolling(15,min_periods=1).mean().reset_index(0,drop=True)
 
 		opp_team_home_away = 'Opp_Team_Home_Away_'+str(stat)
-		total_df[opp_team_home_away] = total_df.groupby(['Opp_Team','Home'])[new_stat].rolling(20,min_periods=1).mean().reset_index(drop=True)
+		total_df[opp_team_home_away] = total_df.groupby(['Opp_Team','Home'],as_index=False)[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
 
 		opp_team_right_left = 'Opp_Team_Right_Left_'+str(stat)
-		total_df[opp_team_right_left] = total_df.groupby(['Opp_Team','P_Hand'])[new_stat].rolling(20,min_periods=1).mean().reset_index(drop=True)
-
-		opp_pitcher = 'Opp_Pitcher_'+str(stat)
-		total_df[opp_pitcher] = total_df.groupby('Opp_Pitcher')[new_stat].rolling(7,min_periods=1).mean().reset_index(drop=True)
-
-		opp_pitcher_home_away = 'Opp_Pitcher_Home_Away_'+str(stat)
-		total_df[opp_pitcher_home_away] = total_df.groupby(['Opp_Pitcher','Home'])[new_stat].rolling(5,min_periods=1).mean().reset_index(drop=True)
+		total_df[opp_team_right_left] = total_df.groupby(['Opp_Team','P_Hand'],as_index=False)[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
 
 		opp_team_series_by_game = 'Opp_Team_Series_By_Game_'+str(stat)
-		total_df[opp_team_series_by_game] = total_df.groupby(['Opp_Team','Game_Number','Series_Win_Classifier'])[new_stat].rolling(15,min_periods=1).mean().reset_index(drop=True)
+		total_df[opp_team_series_by_game] = total_df.groupby(['Opp_Team','Game_Number','Series_Win_Classifier'],as_index=False)[new_stat].rolling(15,min_periods=1).mean().reset_index(0,drop=True)
 
 		opp_team_betting_profile = 'Opp_Team_Betting_Profile_'+str(stat)
-		total_df[betting_profile] = total_df.groupby(['Opp_Team','Betting_Profile'])[new_stat].rolling(20,min_periods=1).mean().reset_index(drop=True)
+		total_df[opp_team_betting_profile] = total_df.groupby(['Opp_Team','Betting_Profile'],as_index=False)[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
 
 		opp_team_opp_team_profile = 'Opp_Team_Opp_Team_Profile_'+str(stat)
-		total_df[opp_team_opp_team_profile] = total_df.groupby(['Opp_Team','Opp_Team_Profile'])[new_stat].rolling(20,min_periods=1).mean().reset_index(drop=True)
+		total_df[opp_team_opp_team_profile] = total_df.groupby(['Opp_Team','Opp_Team_Profile'],as_index=False)[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
 
 		opp_team_matchup_profile = 'Opp_Team_Matchup_Profile_'+str(stat)
-		total_df[opp_team_matchup_profile] = total_df.groupby(['Opp_Team','Matchup_Profile','Home'])[new_stat].rolling(20,min_periods=1).mean().reset_index(drop=True)
-
-		opp_pitcher_betting_profile = 'Opp_Pitcher_Betting_Profile_'+str(stat)
-		gl[pitcher_betting_profile] = gl.groupby(['Opp_Pitcher','Betting_Profile'])[new_stat].rolling(5,min_periods=1).mean().reset_index(drop=True)
-
-		opp_pitcher_opp_team_profile = 'Opp_Pitcher_Opp_Team_Profile_'+str(stat)
-		gl[pitcher_opp_team_profile] = gl.groupby(['Opp_Pitcher','Team_Profile'])[new_stat].rolling(5,min_periods=1).mean().reset_index(drop=True)
-
-		opp_pitcher_matchup_profile = 'Opp_Pitcher_Matchup_Profile_'+str(stat)
-		gl[pitcher_matchup_profile] = gl.groupby(['Opp_Pitcher','Matchup_Profile','Home'])[new_stat].rolling(5,min_periods=1).mean().reset_index(drop=True)
-
-		opp_pitcher_v_team = 'Opp_Pitcher_vs_Team_'+str(stat)
-		gl[pitcher_v_team] = gl.groupby(['Opp_Pitcher','Team_Name'])[new_stat].rolling(5,min_periods=1).mean().reset_index(drop=True)
+		total_df[opp_team_matchup_profile] = total_df.groupby(['Opp_Team','Matchup_Profile','Home'],as_index=False)[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
 
 
-	for num in range(1,6):
-		for stat in ['Win','Hit','Pitch','Over','Cover']:
-
-			new_stat = 'True_'+str(stat)
+		for num in range(1,6):
 
 			opp_team_overall = 'Opp_Team_Overall_'+str(stat)+'_'+str(num)
 			total_df[opp_team_overall] = total_df.groupby('Opp_Team')[new_stat].shift(num)
 
 			opp_team_home_away = 'Opp_Team_Home_Away_'+str(stat)+'_'+str(num)
-			total_df[opp_team_home_away] = total_df.groupby(['Opp_Team','Home'])[new_stat].shift(num)
+			total_df[opp_team_home_away] = total_df.groupby(['Opp_Team','Home'],as_index=False)[new_stat].shift(num)
 
 			opp_team_right_left = 'Opp_Team_Right_Left_'+str(stat)+'_'+str(num)
-			total_df[opp_team_right_left] = total_df.groupby(['Opp_Team','P_Hand'])[new_stat].shift(num)
+			total_df[opp_team_right_left] = total_df.groupby(['Opp_Team','P_Hand'],as_index=False)[new_stat].shift(num)
 
 			opp_pitcher = 'Opp_Pitcher_'+str(stat)+'_'+str(num)
 			total_df[opp_pitcher] = total_df.groupby('Opp_Pitcher')[new_stat].shift(num)
 
 			opp_pitcher_home_away = 'Opp_Pitcher_Home_Away_'+str(stat)+'_'+str(num)
-			total_df[opp_pitcher_home_away] = total_df.groupby(['Opp_Pitcher','Home'])[new_stat].shift(num)
-
+			total_df[opp_pitcher_home_away] = total_df.groupby(['Opp_Pitcher','Home'],as_index=False)[new_stat].shift(num)
+ 
 			opp_team_series_by_game = 'Opp_Team_Series_By_Game_'+str(stat)+'_'+str(num)
-			total_df[opp_team_series_by_game] = total_df.groupby(['Opp_Team','Game_Number','Series_Win_Classifier'])[new_stat].shift(num)
+			total_df[opp_team_series_by_game] = total_df.groupby(['Opp_Team','Game_Number','Series_Win_Classifier'],as_index=False)[new_stat].shift(num)
 
 			opp_team_betting_profile = 'Opp_Team_Betting_Profile_'+str(stat)+'_'+str(num)
-			total_df[betting_profile] = total_df.groupby(['Opp_Team','Betting_Profile'])[new_stat].shift(num)
+			total_df[opp_team_betting_profile] = total_df.groupby(['Opp_Team','Betting_Profile'],as_index=False)[new_stat].shift(num)
 
 			opp_team_opp_team_profile = 'Opp_Team_Opp_Team_Profile_'+str(stat)+'_'+str(num)
-			total_df[opp_team_opp_team_profile] = total_df.groupby(['Opp_Team','Opp_Team_Profile'])[new_stat].shift(num)
+			total_df[opp_team_opp_team_profile] = total_df.groupby(['Opp_Team','Opp_Team_Profile'],as_index=False)[new_stat].shift(num)
 
 			opp_team_matchup_profile = 'Opp_Team_Matchup_Profile_'+str(stat)+'_'+str(num)
-			total_df[opp_team_matchup_profile] = total_df.groupby(['Opp_Team','Matchup_Profile','Home'])[new_stat].shift(num)
+			total_df[opp_team_matchup_profile] = total_df.groupby(['Opp_Team','Matchup_Profile','Home'],as_index=False)[new_stat].shift(num)
 
 			opp_pitcher_betting_profile = 'Opp_Pitcher_Betting_Profile_'+str(stat)+'_'+str(num)
-			gl[pitcher_betting_profile] = gl.groupby(['Opp_Pitcher','Betting_Profile'])[new_stat].shift(num)
+			total_df[opp_pitcher_betting_profile] = total_df.groupby(['Opp_Pitcher','Betting_Profile'],as_index=False)[new_stat].shift(num)
 
 			opp_pitcher_opp_team_profile = 'Opp_Pitcher_Opp_Team_Profile_'+str(stat)+'_'+str(num)
-			gl[pitcher_opp_team_profile] = gl.groupby(['Opp_Pitcher','Team_Profile'])[new_stat].shift(num)
+			total_df[opp_pitcher_opp_team_profile] = total_df.groupby(['Opp_Pitcher','Team_Profile'],as_index=False)[new_stat].shift(num)
 
 			opp_pitcher_matchup_profile = 'Opp_Pitcher_Matchup_Profile_'+str(stat)+'_'+str(num)
-			gl[pitcher_matchup_profile] = gl.groupby(['Opp_Pitcher','Matchup_Profile','Home'])[new_stat].shift(num)
+			total_df[opp_pitcher_matchup_profile] = total_df.groupby(['Opp_Pitcher','Matchup_Profile','Home'],as_index=False)[new_stat].shift(num)
 
 			opp_pitcher_v_team = 'Opp_Pitcher_vs_Team_'+str(stat)+'_'+str(num)
-			gl[pitcher_v_team] = gl.groupby(['Opp_Pitcher','Team_Name'])[new_stat].shift(num)
-
-	total_df = total_df.fillna(0)
+			total_df[opp_pitcher_v_team] = total_df.groupby(['Opp_Pitcher','Team_Name'],as_index=False)[new_stat].shift(num)
 
 	for i in teams:
 		gl = total_df[total_df.index.get_level_values('Team_Name')==i]
@@ -580,6 +538,12 @@ def get_game_logs_secondary(primary_logs,given_date):
 
 	out['All_Teams'] = total_df.to_json(orient='index')
 
+	try:
+		os.chdir('/Users/kalebryler/Desktop/MLB_Project/Game_Log_Files')
+	except:
+		os.mkdir('/Users/kalebryler/Desktop/MLB_Project/Game_Log_Files')
+		os.chdir('/Users/kalebryler/Desktop/MLB_Project/Game_Log_Files')
+
 	with open('game_logs.txt', 'w') as file:
 		file.write(json.dumps(out))
 
@@ -591,6 +555,13 @@ def get_logs(t_delta):
 		new_date = "OFFSEASON"
 	else:
 		new_date = today_date.strftime("%m/%d")
+
+	try:
+		os.chdir('/Users/kalebryler/Desktop/MLB_Project/Game_Log_Files')
+	except:
+		os.mkdir('/Users/kalebryler/Desktop/MLB_Project/Game_Log_Files')
+		os.chdir('/Users/kalebryler/Desktop/MLB_Project/Game_Log_Files')
+
 	try:
 		hist_logs = open('game_logs.txt', 'r')
 		game_logs = json.load(hist_logs)
@@ -693,6 +664,12 @@ def get_logs_from_primary(t_delta):
 	else:
 		new_date = today_date.strftime("%m/%d")
 
+	try:
+		os.chdir('/Users/kalebryler/Desktop/MLB_Project/Game_Log_Files')
+	except:
+		os.mkdir('/Users/kalebryler/Desktop/MLB_Project/Game_Log_Files')
+		os.chdir('/Users/kalebryler/Desktop/MLB_Project/Game_Log_Files')
+
 	primary_logs = open('game_logs_primary.txt', 'r')
 	primary_game_logs = json.load(primary_logs)
 	print('Primary Game Logs Found')
@@ -700,16 +677,29 @@ def get_logs_from_primary(t_delta):
 	print('Secondary Game Logs Found')
 	return game_logs
 
-class GameLog:
+class GameLogs:
 	def __init__(self,timedelta=None):
 		self.timedelta = timedelta if timedelta != None else 0
 		self.log_txt = get_logs(self.timedelta)
 
+def write_game_logs():
+	game_logs = GameLogs(0)
 
-###Get Game Logs###
-game_logs = GameLog()
+	try:
+		os.chdir('/Users/kalebryler/Desktop/MLB_Project/2019_Game_Logs')
+	except:
+		os.mkdir('/Users/kalebryler/Desktop/MLB_Project/2019_Game_Logs')
+		os.chdir('/Users/kalebryler/Desktop/MLB_Project/2019_Game_Logs')
 
-team = pd.read_json(game_logs.log_txt['New York Mets'],orient='index')
-team.set_index('Date',inplace=True)
-print(team)
-team.to_csv("mets.csv")
+	teams = ['All_Teams','St. Louis Cardinals', 'Toronto Blue Jays', 'Los Angeles Angels', 'New York Yankees', 'Arizona Diamondbacks', 'San Diego Padres', 'Atlanta Braves', 'Oakland Athletics', 'Boston Red Sox', 'Cleveland Indians', 'Miami Marlins', 'Colorado Rockies', 'Milwaukee Brewers', 'Houston Astros', 'Minnesota Twins', 'Cincinnati Reds', 'New York Mets', 'Detroit Tigers', 'Philadelphia Phillies', 'Chicago Cubs', 'Seattle Mariners', 'Los Angeles Dodgers', 'San Francisco Giants', 'Pittsburgh Pirates', 'Texas Rangers', 'Chicago White Sox', 'Tampa Bay Rays', 'Kansas City Royals', 'Baltimore Orioles', 'Washington Nationals']
+
+	for i in teams:
+		team = pd.read_json(game_logs.log_txt[i],orient='index')
+		team.set_index('Date',inplace=True)
+		file_name = i.replace(' ','_').replace('.','') + ".csv"
+		team.to_csv(file_name)
+
+	print("Game Logs Written")
+
+###Write Game Logs###
+write_game_logs()
