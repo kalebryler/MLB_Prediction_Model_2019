@@ -373,6 +373,7 @@ def get_game_logs_secondary(primary_logs,given_date):
 		gl['Team_Profile'] = np.select([gl['Team_Good']==1,gl['Team_Bad']==1,gl['Team_Middle']==1],['Good','Bad','Middle'])
 		gl['Opp_Team_Profile'] = np.select([gl['Opp_Team_Good']==1,gl['Opp_Team_Bad']==1,gl['Opp_Team_Middle']==1],['Good','Bad','Middle'])
 		gl = gl.replace([np.inf, -np.inf], np.nan)
+		gl.fillna(0,inplace=True)
 		gl.drop(['Team_Good','Team_Middle','Team_Bad','Opp_Team_Good','Opp_Team_Middle','Opp_Team_Bad','Favorite','Close','Underdog'], axis=1, inplace=True)
 
 		for stat in ['Win','Hit','Pitch','Over','F5_Over','Cover']:
@@ -380,28 +381,28 @@ def get_game_logs_secondary(primary_logs,given_date):
 			new_stat = 'True_'+str(stat)
 
 			overall_1 = 'Overall_30_'+str(stat)
-			gl[overall_1] = gl[new_stat].rolling(30,min_periods=1).mean()
+			gl[overall_1] = gl[new_stat].shift().rolling(30,min_periods=1).mean()
 
 			overall_2 = 'Overall_15_'+str(stat)
-			gl[overall_2] = gl[new_stat].rolling(15,min_periods=1).mean()
+			gl[overall_2] = gl[new_stat].shift().rolling(15,min_periods=1).mean()
 
 			home_away = 'Home_Away_'+str(stat)
-			gl[home_away] = gl.groupby('Home')[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
+			gl[home_away] = gl.groupby('Home')[new_stat].transform(lambda x : x.shift().rolling(20,min_periods=1).mean())
 
 			right_left = 'Right_Left_'+str(stat)
-			gl[right_left] = gl.groupby('vs_Right')[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
+			gl[right_left] = gl.groupby('vs_Right')[new_stat].transform(lambda x: x.shift().rolling(15,min_periods=1).mean())
 
 			series_by_game = 'Series_By_Game_'+str(stat)
-			gl[series_by_game] = gl.groupby(['Game_Number','Series_Win_Classifier'],as_index=False)[new_stat].rolling(15,min_periods=1).mean().reset_index(0,drop=True)
+			gl[series_by_game] = gl.groupby(['Game_Number','Series_Win_Classifier'],as_index=False)[new_stat].transform(lambda x: x.shift().rolling(15,min_periods=1).mean())
 
 			betting_profile = 'Betting_Profile_'+str(stat)
-			gl[betting_profile] = gl.groupby('Betting_Profile')[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
+			gl[betting_profile] = gl.groupby('Betting_Profile')[new_stat].transform(lambda x: x.shift().rolling(20,min_periods=1).mean())
 
 			opp_team_profile = 'Opp_Team_Profile_'+str(stat)
-			gl[opp_team_profile] = gl.groupby('Opp_Team_Profile')[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
+			gl[opp_team_profile] = gl.groupby('Opp_Team_Profile')[new_stat].transform(lambda x: x.shift().rolling(20,min_periods=1).mean())
 
 			matchup_profile = 'Matchup_Profile_'+str(stat)
-			gl[matchup_profile] = gl.groupby(['Matchup_Profile','Home'],as_index=False)[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
+			gl[matchup_profile] = gl.groupby(['Matchup_Profile','Home'],as_index=False)[new_stat].transform(lambda x: x.shift().rolling(20,min_periods=1).mean())
 
 			for num in range(1,6):
 
@@ -461,28 +462,28 @@ def get_game_logs_secondary(primary_logs,given_date):
 		new_stat = 'True_'+str(stat)
 
 		opp_team_overall_1 = 'Opp_Team_Overall_30_'+str(stat)
-		total_df[opp_team_overall_1] = total_df.groupby('Opp_Team')[new_stat].rolling(30,min_periods=1).mean().reset_index(0,drop=True)
+		total_df[opp_team_overall_1] = total_df.groupby('Opp_Team')[new_stat].transform(lambda x: x.shift().rolling(30,min_periods=1).mean().reset_index(0,drop=True))
 
 		opp_team_overall_2 = 'Opp_Team_Overall_15_'+str(stat)
-		total_df[opp_team_overall_2] = total_df.groupby('Opp_Team')[new_stat].rolling(15,min_periods=1).mean().reset_index(0,drop=True)
+		total_df[opp_team_overall_2] = total_df.groupby('Opp_Team')[new_stat].transform(lambda x: x.shift().rolling(15,min_periods=1).mean().reset_index(0,drop=True))
 
 		opp_team_home_away = 'Opp_Team_Home_Away_'+str(stat)
-		total_df[opp_team_home_away] = total_df.groupby(['Opp_Team','Home'],as_index=False)[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
+		total_df[opp_team_home_away] = total_df.groupby(['Opp_Team','Home'],as_index=False)[new_stat].transform(lambda x: x.shift().rolling(20,min_periods=1).mean().reset_index(0,drop=True))
 
 		opp_team_right_left = 'Opp_Team_Right_Left_'+str(stat)
-		total_df[opp_team_right_left] = total_df.groupby(['Opp_Team','P_Hand'],as_index=False)[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
+		total_df[opp_team_right_left] = total_df.groupby(['Opp_Team','P_Hand'],as_index=False)[new_stat].transform(lambda x: x.shift().rolling(20,min_periods=1).mean().reset_index(0,drop=True))
 
 		opp_team_series_by_game = 'Opp_Team_Series_By_Game_'+str(stat)
-		total_df[opp_team_series_by_game] = total_df.groupby(['Opp_Team','Game_Number','Series_Win_Classifier'],as_index=False)[new_stat].rolling(15,min_periods=1).mean().reset_index(0,drop=True)
+		total_df[opp_team_series_by_game] = total_df.groupby(['Opp_Team','Game_Number','Series_Win_Classifier'],as_index=False)[new_stat].transform(lambda x: x.shift().rolling(15,min_periods=1).mean().reset_index(0,drop=True))
 
 		opp_team_betting_profile = 'Opp_Team_Betting_Profile_'+str(stat)
-		total_df[opp_team_betting_profile] = total_df.groupby(['Opp_Team','Betting_Profile'],as_index=False)[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
+		total_df[opp_team_betting_profile] = total_df.groupby(['Opp_Team','Betting_Profile'],as_index=False)[new_stat].transform(lambda x: x.shift().rolling(20,min_periods=1).mean().reset_index(0,drop=True))
 
 		opp_team_opp_team_profile = 'Opp_Team_Opp_Team_Profile_'+str(stat)
-		total_df[opp_team_opp_team_profile] = total_df.groupby(['Opp_Team','Opp_Team_Profile'],as_index=False)[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
+		total_df[opp_team_opp_team_profile] = total_df.groupby(['Opp_Team','Opp_Team_Profile'],as_index=False)[new_stat].transform(lambda x: x.shift().rolling(20,min_periods=1).mean().reset_index(0,drop=True))
 
 		opp_team_matchup_profile = 'Opp_Team_Matchup_Profile_'+str(stat)
-		total_df[opp_team_matchup_profile] = total_df.groupby(['Opp_Team','Matchup_Profile','Home'],as_index=False)[new_stat].rolling(20,min_periods=1).mean().reset_index(0,drop=True)
+		total_df[opp_team_matchup_profile] = total_df.groupby(['Opp_Team','Matchup_Profile','Home'],as_index=False)[new_stat].transform(lambda x: x.shift().rolling(20,min_periods=1).mean().reset_index(0,drop=True))
 
 
 		for num in range(1,6):
@@ -680,7 +681,7 @@ def get_logs_from_primary(t_delta):
 class GameLogs:
 	def __init__(self,timedelta=None):
 		self.timedelta = timedelta if timedelta != None else 0
-		self.log_txt = get_logs(self.timedelta)
+		self.log_txt = get_logs_from_primary(self.timedelta)
 
 def write_game_logs():
 	game_logs = GameLogs(0)
