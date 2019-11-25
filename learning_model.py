@@ -2,25 +2,14 @@ import numpy as np
 import pandas as pd
 import os
 import json
-from sklearn.linear_model import ElasticNetCV
-from sklearn.linear_model import SGDRegressor
-from sklearn.linear_model import ARDRegression
-from sklearn.linear_model import HuberRegressor
-from sklearn.linear_model import LinearRegression
-from sklearn.linear_model import LassoCV
 from sklearn.svm import LinearSVR
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.cluster import KMeans
-from sklearn.datasets import make_regression
-from sklearn.feature_selection import RFECV
-import statsmodels.api as sm
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn import preprocessing
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn import svm
-from sklearn.metrics import average_precision_score
+from sklearn.metrics import accuracy_score
 
 def round_up(x, a):
 	return np.ceil(x/a)*a
@@ -138,8 +127,8 @@ def print_model(team_name,model_name,outcome):
 
 	model = model_name(var_dict[outcome]['Inputs'],var_dict[outcome]['Outputs'],var_dict[outcome]['Payout'])
 	model.model()
+	# print(model.metrics)
 
-	print(model.metrics)
 	print(model.results)
 	print("Error: " + '{:.2%}'.format(model.error))
 	print("Accuracy: " + '{:.2%}'.format(model.accuracy))
@@ -163,13 +152,13 @@ def model_team(team_name):
 		d[outcome]['NeuralNet']['Accuracy'] = '{:.2%}'.format(net.accuracy)
 		d[outcome]['NeuralNet']['Profit'] = '{:.2%}'.format(net.profit)
 
-		d[outcome]['SVM'] = {}
-		svm = SVM(var_dict[outcome]['Inputs'],var_dict[outcome]['Outputs'],var_dict[outcome]['Payout'])
-		svm.model()
-		# d[outcome]['SVM']['Results'] = svm.results
-		d[outcome]['SVM']['Error'] = '{:.2%}'.format(svm.error)
-		d[outcome]['SVM']['Accuracy'] = '{:.2%}'.format(svm.accuracy)
-		d[outcome]['SVM']['Profit'] = '{:.2%}'.format(svm.profit)
+		# d[outcome]['SVM'] = {}
+		# svm = SVM(var_dict[outcome]['Inputs'],var_dict[outcome]['Outputs'],var_dict[outcome]['Payout'])
+		# svm.model()
+		# # d[outcome]['SVM']['Results'] = svm.results
+		# d[outcome]['SVM']['Error'] = '{:.2%}'.format(svm.error)
+		# d[outcome]['SVM']['Accuracy'] = '{:.2%}'.format(svm.accuracy)
+		# d[outcome]['SVM']['Profit'] = '{:.2%}'.format(svm.profit)
 
 	return d
 
@@ -193,7 +182,7 @@ class NeuralNet:
 
 		self.input_size = self.x.shape[1]
 
-		self.x_train, self.x_test, self.y_train, self.y_test, self.ml_train, self.ml_test = train_test_split(self.x, self.y, self.ml, test_size = 0.25)
+		self.x_train,self.x_test,self.y_train,self.y_test,self.ml_train,self.ml_test = train_test_split(self.x,self.y,self.ml,test_size = 0.25)
 
 	def model(self):
 		scaler = StandardScaler()
@@ -212,7 +201,7 @@ class NeuralNet:
 		fit = net.fit(self.x_train, self.y_train.ravel())
 		predictions = fit.predict(self.x_test)
 
-		self.metrics = classification_report(self.y_test,predictions)
+		# self.metrics = classification_report(self.y_test,predictions)
 
 		self.results = pd.DataFrame([predictions,self.y_test,self.ml_test.ravel()]).T
 
@@ -235,7 +224,7 @@ class SVM:
 		self.y = y
 		self.ml = ml
 
-		self.x_train, self.x_test, self.y_train, self.y_test, self.ml_train, self.ml_test = train_test_split(self.x, self.y, self.ml, test_size = 0.25)
+		self.x_train,self.x_test,self.y_train,self.y_test,self.ml_train,self.ml_test = train_test_split(self.x,self.y,self.ml,test_size = 0.25)
 
 	def model(self):
 		scaler = StandardScaler()
@@ -252,8 +241,6 @@ class SVM:
 		fit = net.fit(self.x_train, self.y_train.ravel())
 		predictions = fit.predict(self.x_test)
 
-		self.metrics = average_precision_score(self.y_test, predictions)
-
 		self.results = pd.DataFrame([predictions,self.y_test,self.ml_test.ravel()]).T
 
 		self.results.columns = ['Predicted','Actual','ML']
@@ -266,11 +253,9 @@ class SVM:
 		self.profit = self.results['Payout'].mean()
 
 ##########
-# a = read_file('Los Angeles Dodgers')
-# d = get_inputs_outputs(a)
-# hitter_net = NeuralNet(d['Win']['Inputs'],d['Win']['Outputs'],d['Win']['Payout'])
-# hitter_net.model()
+# print_model("All Teams",NeuralNet,"Win")
 
-a = print_model("All Teams",NeuralNet,"F5_Over")
-# print(json.dumps(a, indent=4, sort_keys=True))
+a = model_all()
+print(a)
+
 
