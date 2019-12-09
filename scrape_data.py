@@ -7,12 +7,9 @@ import sys
 import math
 import csv
 import pandas as pd
-from statistics import mean
 import unicodedata
 import re
 import json
-import ast
-from pandas.io.json import json_normalize
 import numpy as np
 from numpy import inf
 import warnings
@@ -48,7 +45,7 @@ def avg(li):
 	new2 = [x for x in new if x is not None]
 	new3 = [x for x in new2 if str(x)!='nan']
 	new4 = [x for x in new3 if x==x]
-	return mean(new3) if len(new4)>0 else 0
+	return np.mean(new3) if len(new4)>0 else 0
 
 def p_diff(orig, new):
 	if orig == new:
@@ -260,6 +257,7 @@ def get_game_logs_primary(old_lines,missing_lines,given_date):
 		gl_new = gl_new.dropna(subset=['Drop'])
 
 		gl_new['Opp_Team'] = gl_new['Opponent'].str.split(' ').str[1]
+		gl_new['Opp_Team_Name'] = gl_new['Opp_Team'].map(team_map_1)
 		gl_new['Opp_Team_Divison'] = gl_new['Opp_Team'].map(divisions)
 		gl_new['Home'] = np.where(gl_new['Opponent'].str.contains('vs'),1,0)
 		gl_new['Win'] = np.where(gl_new['Result'].str.contains('W'),1,-1)
@@ -454,8 +452,10 @@ def get_game_logs_secondary(primary_logs,given_date):
 	total_df = pd.concat(all_teams,axis=0)
 	total_df = total_df.reset_index()
 	total_df.rename(columns={'index': 'Date'}, inplace=True)
+	total_df['Matchup'] = np.where(total_df['Home']==1,total_df['Opp_Team_Name']+' @ '+total_df['Team_Name']+' '+total_df['Date'],total_df['Team_Name']+' @ '+total_df['Opp_Team_Name']+' '+total_df['Date'])
 	total_df.set_index(['Date','Team_Name'],inplace=True)
 	total_df = total_df.sort_values('Date')
+
 
 	for stat in ['Win','Hit','Pitch','Over','F5_Over','Cover']:
 
@@ -681,7 +681,7 @@ def get_logs_from_primary(t_delta):
 class GameLogs:
 	def __init__(self,timedelta=None):
 		self.timedelta = timedelta if timedelta != None else 0
-		self.log_txt = get_logs_from_primary(self.timedelta)
+		self.log_txt = get_logs(self.timedelta)
 
 def write_game_logs():
 	game_logs = GameLogs(0)
@@ -703,4 +703,4 @@ def write_game_logs():
 	print("Game Logs Written")
 
 ###Write Game Logs###
-write_game_logs()
+# write_game_logs()
