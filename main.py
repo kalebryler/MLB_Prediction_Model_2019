@@ -34,6 +34,7 @@ def main():
 
 		if user_choice == '1':
 			scrape_data.write_game_logs()
+			print("")
 			continue
 
 		elif user_choice == '2':
