@@ -1,26 +1,42 @@
 import scrape_data
 import learning_model
 
-def read_team_name(team_name):
-	team_name = team_name.title()
-	return team_name
-
-def read_bet_type(bet_type):
-	bet_type = bet_type.title()
-	bet_type = bet_type.replace(' ','_')
-	return bet_type
-
-def read_date(date):
-	if date[0] == '0' or date[0] == '1':
-		return date
+def read_team_name(team_name=None):
+	team_map_1 = {'STL':'St. Louis Cardinals','TOR':'Toronto Blue Jays','LAA':'Los Angeles Angels','NYY':'New York Yankees','ARI':'Arizona Diamondbacks','SD':'San Diego Padres','ATL':'Atlanta Braves','OAK':'Oakland Athletics','BOS':'Boston Red Sox','CLE':'Cleveland Indians','MIA':'Miami Marlins','COL':'Colorado Rockies','MIL':'Milwaukee Brewers','HOU':'Houston Astros','MIN':'Minnesota Twins','CIN':'Cincinnati Reds','NYM':'New York Mets','DET':'Detroit Tigers','PHI':'Philadelphia Phillies','CHC':'Chicago Cubs','SEA':'Seattle Mariners','LAD':'Los Angeles Dodgers','SF':'San Francisco Giants','PIT':'Pittsburgh Pirates','TEX':'Texas Rangers','CWS':'Chicago White Sox','TB':'Tampa Bay Rays','KC':'Kansas City Royals','BAL':'Baltimore Orioles','WSH':'Washington Nationals'}
+	
+	if team_name is not None:
+		if team_name in team_map_1:
+			return team_map_1[team_name]
+		else:
+			team_name = team_name.title()
+			return team_name
 	else:
-		date = '0' + date
-		return date
+		return 0
+
+def read_bet_type(bet_type=None):
+	if bet_type is not None:
+		bet_type = bet_type.title()
+		bet_type = bet_type.replace(' ','_')
+		return bet_type
+	else:
+		return 0
+
+def read_date(date=None):
+	if date is not None:
+		if date[0] == '0' or date[0] == '1':
+			return date
+		else:
+			date = '0' + date
+			return date
+	else:
+		return 0
 
 def main():
 
 	while True:
+		print("")
 		print("Menu Options")
+		print("")
 		print("1. Update Database")
 		print("2. Model Game")
 		print("3. Model Date")
@@ -39,72 +55,118 @@ def main():
 
 		elif user_choice == '2':
 			team_name = read_team_name(input("Team Name: "))
-			outcome = read_bet_type(input("Bet Type: "))
-			date = read_date(input("Date: "))
+			outcome = read_bet_type(input("Bet Type (Win / Cover / Over / F5 Over / All): "))
+			date = read_date(input("Date (Month / Day): "))
 			print("")
 
-			try:
-				output = learning_model.print_model_game(team_name,outcome,date)
-				print("")
-				continue
-			except:
-				print("Invalid Input.")
-				print("")
-				continue
+			if outcome == 'All':
+				try:
+					output = learning_model.model_game_all(team_name,date)
+					print("")
+					continue
+				except:
+					print("Invalid Input.")
+					print("")
+					continue
+			else:
+				try:
+					output = learning_model.print_model_game(team_name,outcome,date)
+					print("")
+					continue
+				except:
+					print("Invalid Input.")
+					print("")
+					continue
 
 		elif user_choice == '3':
-			outcome = read_bet_type(input("Bet Type: "))
-			date = read_date(input("Date: "))
+			outcome = read_bet_type(input("Bet Type (Win/Cover/Over/F5 Over/All): "))
+			date = read_date(input("Date (Month/Day): "))
 			print("")
 
-			try:
-				output = learning_model.model_date(outcome,date)
-				print("")
-				continue
-			except:
-				print("Invalid Input.")
-				print("")
-				continue
+			if outcome == 'All':
+				try:
+					output = learning_model.model_date_all(date)
+					print("")
+					continue
+				except:
+					print("Invalid Input.")
+					print("")
+					continue
+			else:
+				try:
+					output = learning_model.model_date(outcome,date)
+					print("")
+					continue
+				except:
+					print("Invalid Input.")
+					print("")
+					continue
 
 
 		elif user_choice == '4':
 			team_name = read_team_name(input("Team Name: "))
-			outcome = read_bet_type(input("Bet Type: "))
+			outcome = read_bet_type(input("Bet Type (Win/Cover/Over/F5 Over/All): "))
 			print("")
 
-			try:
-				output = learning_model.model_team_season(team_name,outcome)
-				print("")
-				continue
-			except:
-				print("Invalid Input")
-				print("")
-				continue
+			if outcome == 'All':
+				try:
+					output = learning_model.model_team_season_all(team_name)
+					print("")
+					continue
+				except:
+					print("Invalid Input.")
+					print("")
+					continue
+			else:
+				try:
+					output = learning_model.model_team_season(team_name,outcome)
+					print("")
+					continue
+				except:
+					print("Invalid Input.")
+					print("")
+					continue
 
 		elif user_choice == '5':
 			outcome = read_bet_type(input("Bet Type: "))
 			print("")
 
-			try:
+			if outcome == 'All':
+				try:
+					output = learning_model.model_mlb_season_all()
+					print("")
+					continue
+				except:
+					print("Invalid Input.")
+					print("")
+					continue
+			else:
+				# try:
 				output = learning_model.model_mlb_season(outcome)
 				print("")
 				continue
-			except:
-				print("Invalid Input")
-				print("")
-				continue
+				# except:
+				# 	print("Invalid Input.")
+				# 	print("")
+				# 	continue
 
 		elif user_choice == '6':
 			break
 
+
+
+
+
 		elif user_choice == '7':
 			team_name = 'Texas Rangers'
-			outcome = 'Over'
-			date = '07/32'
+			outcome = 'F5_Over'
+			date = '07/23'
 
-			output = learning_model.print_model_game(team_name,outcome,date)
+			output = learning_model.model_date_all(date)
 			print("")
 			continue
+
+
 
 		else:
 			print("Invalid Input")
