@@ -702,5 +702,4 @@ def write_game_logs():
 
 	print("Game Logs Written")
 
-###Write Game Logs###
-# write_game_logs()
+#########

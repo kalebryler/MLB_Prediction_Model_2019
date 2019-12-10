@@ -98,27 +98,6 @@ class NeuralNet:
 			self.given_results['Success'] = np.where(self.given_results['Predicted']==self.given_results['Actual'],1,0)
 			self.given_results['Payout'] = np.select([self.given_results['Success']==1,self.given_results['Success']==0],[self.given_results['Predicted']*self.given_results['Over_ML']+(1-self.given_results['Predicted'])*self.given_results['Under_ML'],-1],0)
 
-	def predict_given_secondary(self,x_given,y_given,ml_given,info_given):
-		self.x_given_secondary = self.scaler.transform(x_given)
-		self.y_given_secondary = self.encoder.transform(y_given.ravel())
-		self.ml_given_secondary = ml_given[0]
-		self.info_given_secondary = info_given[0]
-
-		predictions = self.fit.predict(self.x_given_secondary)
-
-		if self.ml.shape[1] == 1:
-			self.given_results_secondary = pd.DataFrame([self.info_given_secondary.ravel(),predictions,self.y_given_secondary,self.ml_given_secondary.ravel(),self.accuracy.ravel()]).T
-			self.given_results_secondary.columns = ['Matchup','Predicted','Actual','ML','Test_Accuracy']
-			self.given_results_secondary['Success'] = np.where(self.given_results_secondary['Predicted']==self.given_results_secondary['Actual'],1,0)
-			self.given_results_secondary['Payout'] = np.select([self.given_results_secondary['Success']==1,self.given_results_secondary['Success']==0],[self.given_results_secondary['ML'],-1],0)
-
-		else:
-			self.given_results_secondary = pd.DataFrame([self.info_given_secondary.ravel(),predictions,self.y_given_secondary,self.ml_given_secondary[0].ravel(),self.ml_given_secondary[1].ravel(),self.accuracy.ravel()]).T
-			self.given_results_secondary.columns = ['Matchup','Predicted','Actual','Over_ML','Under_ML','Test_Accuracy']
-			self.given_results_secondary['Success'] = np.where(self.given_results_secondary['Predicted']==self.given_results_secondary['Actual'],1,0)
-			self.given_results_secondary['Payout'] = np.select([self.given_results_secondary['Success']==1,self.given_results_secondary['Success']==0],[self.given_results_secondary['Predicted']*self.given_results_secondary['Over_ML']+(1-self.given_results_secondary['Predicted'])*self.given_results_secondary['Under_ML'],-1],0)
-
-
 def round_up(x, a):
 	return np.ceil(x/a)*a
 
@@ -586,66 +565,4 @@ def model_mlb_season_all(silence=None):
 	return df
 
 ##########
-# def print_model(team_name,model_name,outcome):
-# 	team_df = read_file(team_name)
-# 	var_dict = get_inputs_outputs(team_df)
-
-# 	model = model_name(var_dict[outcome]['Inputs'],var_dict[outcome]['Outputs'],var_dict[outcome]['Payout'])
-# 	model.model()
-# 	# print(model.metrics)
-
-# 	print(model.results)
-# 	print("Error: " + '{:.2%}'.format(model.error))
-# 	print("Accuracy: " + '{:.2%}'.format(model.accuracy))
-# 	print("Profit: " + '{:.2%}'.format(model.profit))
-
-# def model_team(team_name):
-# 	d = {}
-
-# 	team_df = read_file(team_name)
-# 	var_dict = get_inputs_outputs(team_df)
-
-# 	for outcome in ['Win','Over','F5_Over','Cover']:
-# 		d[outcome] = {}
-
-# 		# d[outcome]['NeuralNet'] = {}
-# 		net = NeuralNet(var_dict[outcome]['Inputs'],var_dict[outcome]['Outputs'],var_dict[outcome]['Payout'])
-# 		net.model()
-# 		# d[outcome]['NeuralNet']['Results'] = net.results
-# 		d[outcome]['Error'] = '{:.2%}'.format(net.error)
-# 		d[outcome]['Accuracy'] = '{:.2%}'.format(net.accuracy)
-# 		d[outcome]['Profit'] = '{:.2%}'.format(net.profit)
-
-# 		# d[outcome]['SVM'] = {}
-# 		# svm = SVM(var_dict[outcome]['Inputs'],var_dict[outcome]['Outputs'],var_dict[outcome]['Payout'])
-# 		# svm.model()
-# 		# # d[outcome]['SVM']['Results'] = svm.results
-# 		# d[outcome]['SVM']['Error'] = '{:.2%}'.format(svm.error)
-# 		# d[outcome]['SVM']['Accuracy'] = '{:.2%}'.format(svm.accuracy)
-# 		# d[outcome]['SVM']['Profit'] = '{:.2%}'.format(svm.profit)
-
-# 	return d
-
-# def model_all():
-# 	d = {}
-
-# 	teams = ['All_Teams','St. Louis Cardinals', 'Toronto Blue Jays', 'Los Angeles Angels', 'New York Yankees', 'Arizona Diamondbacks', 'San Diego Padres', 'Atlanta Braves', 'Oakland Athletics', 'Boston Red Sox', 'Cleveland Indians', 'Miami Marlins', 'Colorado Rockies', 'Milwaukee Brewers', 'Houston Astros', 'Minnesota Twins', 'Cincinnati Reds', 'New York Mets', 'Detroit Tigers', 'Philadelphia Phillies', 'Chicago Cubs', 'Seattle Mariners', 'Los Angeles Dodgers', 'San Francisco Giants', 'Pittsburgh Pirates', 'Texas Rangers', 'Chicago White Sox', 'Tampa Bay Rays', 'Kansas City Royals', 'Baltimore Orioles', 'Washington Nationals']
-
-# 	for team in teams:
-# 		d[team] = model_team(team)
-
-# 	return d
-
-# def segment(x,y,train_pct):
-# 	new_data = np.concatenate((x,y),axis=1)
-# 	num = new_data.shape[0]
-# 	train_size = int(num*train_pct)
-# 	np.random.shuffle(new_data)
-# 	train = new_data[:train_size]
-# 	test = new_data[train_size:]
-# 	x_train = train[:,:x.shape[1]]
-# 	x_test = test[:,:x.shape[1]]
-# 	y_train = train[:,x.shape[1]:]
-# 	y_test = test[:,x.shape[1]:]
-# 	return x_train,x_test,y_train,y_test
 

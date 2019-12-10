@@ -141,38 +141,31 @@ def main():
 					print("")
 					continue
 			else:
-				# try:
-				output = learning_model.model_mlb_season(outcome)
-				print("")
-				continue
-				# except:
-				# 	print("Invalid Input.")
-				# 	print("")
-				# 	continue
+				try:
+					output = learning_model.model_mlb_season(outcome)
+					print("")
+					continue
+				except:
+					print("Invalid Input.")
+					print("")
+					continue
 
 		elif user_choice == '6':
 			break
 
+		# elif user_choice == '7':
+		# 	team_name = 'Texas Rangers'
+		# 	outcome = 'F5_Over'
+		# 	date = '07/23'
 
-
-
-
-		elif user_choice == '7':
-			team_name = 'Texas Rangers'
-			outcome = 'F5_Over'
-			date = '07/23'
-
-			output = learning_model.model_date_all(date)
-			print("")
-			continue
-
-
+		# 	output = learning_model.model_date_all(date)
+		# 	print("")
+		# 	continue
 
 		else:
 			print("Invalid Input")
 			print("")
 			continue
-
 
 	return
 
