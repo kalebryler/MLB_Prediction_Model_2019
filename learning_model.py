@@ -5,6 +5,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn import preprocessing
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
+from copy import deepcopy
 
 
 class NeuralNet:
@@ -14,7 +15,7 @@ class NeuralNet:
 		self.ml = ml[:-1]
 		self.info = info[:-1]
 
-		self.x_train,self.x_test,self.y_train,self.y_test,self.ml_train,self.ml_test,self.info_train,self.info_test = train_test_split(self.x,self.y,self.ml,self.info,test_size = 0.25)
+		self.x_train,self.x_test,self.y_train,self.y_test,self.ml_train,self.ml_test,self.info_train,self.info_test = train_test_split(self.x,self.y,self.ml,self.info,test_size = 0.3)
 
 		self.x_game = x[-1]
 		self.y_game = y[-1]
@@ -104,14 +105,16 @@ def round_up(x, a):
 def round_down(x, a):
 	return int(np.floor(x/a)*a)
 
-def read_file(team_name):
+def read_file(team_name,year=None):
+	new_year = '2019' if year == None else year
+
 	file_name = team_name.replace(' ','_').replace('.','') + ".csv"
 
 	try:
-		os.chdir('/Users/kalebryler/Desktop/MLB_Project/2019_Game_Logs')
+		os.chdir('/Users/kalebryler/Desktop/MLB_Project/' + new_year + '_Game_Logs')
 	except:
-		os.mkdir('/Users/kalebryler/Desktop/MLB_Project/2019_Game_Logs')
-		os.chdir('/Users/kalebryler/Desktop/MLB_Project/2019_Game_Logs')
+		os.mkdir('/Users/kalebryler/Desktop/MLB_Project/' + new_year + '_Game_Logs')
+		os.chdir('/Users/kalebryler/Desktop/MLB_Project/' + new_year + '_Game_Logs')
 
 	if team_name == 'All_Teams':
 		data = pd.read_csv(file_name,low_memory=False)
@@ -200,7 +203,7 @@ def get_inputs_outputs(df,outcome):
 
 	return d
 
-def model_game(team_name,outcome,date,import_mlb_model=None,export_mlb_model=False):
+def model_game(team_name,outcome,date,import_mlb_model=None,export_mlb_model=False,import_past_model=None,export_past_model=False):
 	d = {}
 
 	team_df = read_file(team_name)
@@ -230,23 +233,49 @@ def model_game(team_name,outcome,date,import_mlb_model=None,export_mlb_model=Fal
 		mlb_model = NeuralNet(team_mlb_var_dict['Inputs'],team_mlb_var_dict['Outputs'],team_mlb_var_dict['Payout'],team_mlb_var_dict['Info'])
 		mlb_model.model()
 
-		team_mlb_model = mlb_model
-		team_mlb_model.predict_given(var_dict['Inputs'][-1],opp_var_dict['Outputs'][-1],opp_var_dict['Payout'][-1],opp_var_dict['Info'][-1])
+		team_mlb_model = deepcopy(mlb_model)
+		team_mlb_model.predict_given(var_dict['Inputs'][-1],var_dict['Outputs'][-1],var_dict['Payout'][-1],var_dict['Info'][-1])
 
-		opp_team_mlb_model = mlb_model
+		opp_team_mlb_model = deepcopy(mlb_model)
 		opp_team_mlb_model.predict_given(opp_var_dict['Inputs'][-1],opp_var_dict['Outputs'][-1],opp_var_dict['Payout'][-1],opp_var_dict['Info'][-1])
 
 	else:
-		team_mlb_model = import_mlb_model
-		team_mlb_model.predict_given(var_dict['Inputs'][-1],opp_var_dict['Outputs'][-1],opp_var_dict['Payout'][-1],opp_var_dict['Info'][-1])
+		team_mlb_model = deepcopy(import_mlb_model)
+		team_mlb_model.predict_given(var_dict['Inputs'][-1],var_dict['Outputs'][-1],var_dict['Payout'][-1],var_dict['Info'][-1])
 
-		opp_team_mlb_model = import_mlb_model
+		opp_team_mlb_model = deepcopy(import_mlb_model)
 		opp_team_mlb_model.predict_given(opp_var_dict['Inputs'][-1],opp_var_dict['Outputs'][-1],opp_var_dict['Payout'][-1],opp_var_dict['Info'][-1])
+
+	if import_past_model == None:
+		past_df = read_file('All_Teams','2018')
+		past_df = past_df[:date]
+		past_df.reset_index(inplace=True)
+
+		team_past_df = past_df.drop(past_df[(past_df['Date']==date)&(past_df['Team_Name']!=team_name)].index)
+		team_past_df.set_index('Date',inplace=True)
+		team_past_var_dict = get_inputs_outputs(team_past_df,outcome)
+
+		past_model = NeuralNet(team_past_var_dict['Inputs'],team_past_var_dict['Outputs'],team_past_var_dict['Payout'],team_past_var_dict['Info'])
+		past_model.model()
+
+		team_past_model = deepcopy(past_model)
+		team_past_model.predict_given(var_dict['Inputs'][-1],var_dict['Outputs'][-1],var_dict['Payout'][-1],var_dict['Info'][-1])
+
+		opp_team_past_model = deepcopy(past_model)
+		opp_team_past_model.predict_given(opp_var_dict['Inputs'][-1],opp_var_dict['Outputs'][-1],opp_var_dict['Payout'][-1],opp_var_dict['Info'][-1])
+
+	else:
+		team_past_model = deepcopy(import_past_model)
+		team_past_model.predict_given(var_dict['Inputs'][-1],var_dict['Outputs'][-1],var_dict['Payout'][-1],var_dict['Info'][-1])
+
+		opp_team_past_model = deepcopy(import_past_model)
+		opp_team_past_model.predict_given(opp_var_dict['Inputs'][-1],opp_var_dict['Outputs'][-1],opp_var_dict['Payout'][-1],opp_var_dict['Info'][-1])
+
 
 	d['Matchup'] = model.game_results['Matchup'][0]
 
 	if outcome == 'Win' or outcome == 'Cover':
-		score = np.sum([2*model.game_results['Predicted'][0],2-2*opp_model.game_results['Predicted'][0],team_mlb_model.given_results['Predicted'][0],1-opp_team_mlb_model.given_results['Predicted'][0]])/6
+		score = np.sum([2*model.game_results['Predicted'][0],2-2*opp_model.game_results['Predicted'][0],team_mlb_model.given_results['Predicted'][0],1-opp_team_mlb_model.given_results['Predicted'][0],team_past_model.given_results['Predicted'][0],1-opp_team_past_model.given_results['Predicted'][0]])/8
 
 		if score >= 0.8:
 			d['Action'] = team_name + ' ' + outcome.replace('_',' ')
@@ -289,7 +318,7 @@ def model_game(team_name,outcome,date,import_mlb_model=None,export_mlb_model=Fal
 			d['Payout'] = 0
 
 	elif outcome == 'Over' or outcome == 'F5_Over':
-		score = np.mean([model.game_results['Predicted'][0],opp_model.game_results['Predicted'][0],team_mlb_model.given_results['Predicted'][0],opp_team_mlb_model.given_results['Predicted'][0]])
+		score = np.sum([2*model.game_results['Predicted'][0],2*opp_model.game_results['Predicted'][0],team_mlb_model.given_results['Predicted'][0],opp_team_mlb_model.given_results['Predicted'][0],team_past_model.given_results['Predicted'][0],opp_team_past_model.given_results['Predicted'][0]])/8
 
 		if score >= 0.8:
 			d['Action'] = 'Total ' + outcome.replace('_',' ')
@@ -525,7 +554,6 @@ def model_mlb_season(outcome,silence=None):
 		print(date + ' Complete')
 	
 	df = pd.concat(d,axis=0)
-	# df.set_index('Matchup',inplace=True)
 
 	if silence==None:
 		pd.set_option("display.max_rows", 9999)
@@ -551,7 +579,65 @@ def model_mlb_season_all(silence=None):
 			d.append(g)
 	
 	df = pd.concat(d,axis=0)
-	# df.set_index('Matchup',inplace=True)
+
+	if silence==None:
+		pd.set_option("display.max_rows", 9999)
+		print(df)
+		print("")
+		print('Accuracy: ' + str(df['Success'].mean()))
+		print('Avg. Return: ' + str(df['Payout'].sum()/df['Success'].count()))
+		print('Total Profit: ' + str(df['Payout'].sum()))
+		print('Num. Bets: ' + str(df['Bet'].sum()))
+
+	return df
+
+def model_date_range(outcome,start_date,end_date,silence=None):
+	d = []
+
+	mlb_df = read_file('All_Teams')
+	mlb_df.sort_values('Date',inplace=True)
+	dates = list(mlb_df.index.unique())
+
+	a = dates.index(start_date)
+	b = dates.index(end_date)
+	dates = dates[a:b]
+
+	for date in dates:
+		g = model_date(outcome,date,silence=True)
+		d.append(g)
+		print(date + ' Complete')
+	
+	df = pd.concat(d,axis=0)
+
+	if silence==None:
+		pd.set_option("display.max_rows", 9999)
+		print(df)
+		print("")
+		print('Accuracy: ' + str(df['Success'].mean()))
+		print('Avg. Return: ' + str(df['Payout'].sum()/df['Success'].count()))
+		print('Total Profit: ' + str(df['Payout'].sum()))
+		print('Num. Bets: ' + str(df['Bet'].sum()))
+
+	return df
+
+def model_date_range_all(start_date,end_date,silence=None):
+	d = []
+
+	mlb_df = read_file('All_Teams')
+	mlb_df.sort_values('Date',inplace=True)
+	dates = list(mlb_df.index.unique())
+
+	a = dates.index(start_date)
+	b = dates.index(end_date)
+	dates = dates[a:b]
+
+	for date in dates:
+		for outcome in ['Win','Cover','Over','F5_Over']:
+			g = model_date(outcome,date,silence=True)
+			d.append(g)
+		print(date + ' Complete')
+	
+	df = pd.concat(d,axis=0)
 
 	if silence==None:
 		pd.set_option("display.max_rows", 9999)

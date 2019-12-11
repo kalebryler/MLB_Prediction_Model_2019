@@ -42,7 +42,8 @@ def main():
 		print("3. Model Date")
 		print("4. Model Team's Season")
 		print("5. Model MLB Season")
-		print("6. Exit")
+		print("6. Model Custom Range")
+		print("7. Exit")
 		print("")
 
 		user_choice = input("Select Option Number: ")
@@ -151,16 +152,41 @@ def main():
 					continue
 
 		elif user_choice == '6':
+			outcome = read_bet_type(input("Bet Type: "))
+			start_date = read_date(input("Start Date (Month/Day): "))
+			end_date = read_date(input("End Date (Month/Day): "))
+			print("")
+
+			if outcome == 'All':
+				try:
+					output = learning_model.model_date_range_all(start_date,end_date)
+					print("")
+					continue
+				except:
+					print("Invalid Input.")
+					print("")
+					continue
+			else:
+				try:
+					output = learning_model.model_date_range(outcome,start_date,end_date)
+					print("")
+					continue
+				except:
+					print("Invalid Input.")
+					print("")
+					continue
+
+		elif user_choice == '7':
 			break
 
-		# elif user_choice == '7':
-		# 	team_name = 'Texas Rangers'
-		# 	outcome = 'F5_Over'
-		# 	date = '07/23'
+		elif user_choice == '8':
+			team_name = 'Texas Rangers'
+			outcome = 'Win'
+			date = '07/23'
 
-		# 	output = learning_model.model_date_all(date)
-		# 	print("")
-		# 	continue
+			output = learning_model.model_date(outcome,date)
+			print("")
+			continue
 
 		else:
 			print("Invalid Input")
