@@ -37,7 +37,7 @@ class NeuralNet:
 		self.output_size = len(set(self.y_train))
 
 	def model(self):
-		net = MLPClassifier(hidden_layer_sizes=(int(round_up(self.input_size/2,100)),int(round_up(self.input_size/5,100)),int(round_up(self.input_size/10,100))), max_iter=10000)
+		net = MLPClassifier(hidden_layer_sizes=(round_up(self.input_size/2,100),round_up(self.input_size/5,100),round_up(self.input_size/10,100)), activation='relu', solver='adam', max_iter=10000)
 		self.fit = net.fit(self.x_train, self.y_train.ravel())
 		predictions = self.fit.predict(self.x_test)
 
@@ -99,10 +99,10 @@ class NeuralNet:
 			self.given_results['Payout'] = np.select([self.given_results['Success']==1,self.given_results['Success']==0],[self.given_results['Predicted']*self.given_results['Over_ML']+(1-self.given_results['Predicted'])*self.given_results['Under_ML'],-1],0)
 
 def round_up(x, a):
-	return np.ceil(x/a)*a
+	return int(np.ceil(x/a)*a)
 
 def round_down(x, a):
-	return np.floor(x/a)*a
+	return int(np.floor(x/a)*a)
 
 def read_file(team_name):
 	file_name = team_name.replace(' ','_').replace('.','') + ".csv"
@@ -246,7 +246,7 @@ def model_game(team_name,outcome,date,import_mlb_model=None,export_mlb_model=Fal
 	d['Matchup'] = model.game_results['Matchup'][0]
 
 	if outcome == 'Win' or outcome == 'Cover':
-		score = np.sum([3*model.game_results['Predicted'][0],3-3*opp_model.game_results['Predicted'][0],2*team_mlb_model.given_results['Predicted'][0],2-2*opp_team_mlb_model.given_results['Predicted'][0]])/10
+		score = np.sum([2*model.game_results['Predicted'][0],2-2*opp_model.game_results['Predicted'][0],team_mlb_model.given_results['Predicted'][0],1-opp_team_mlb_model.given_results['Predicted'][0]])/6
 
 		if score >= 0.8:
 			d['Action'] = team_name + ' ' + outcome.replace('_',' ')
