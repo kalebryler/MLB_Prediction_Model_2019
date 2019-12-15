@@ -50,7 +50,7 @@ def main():
 		print("")
 
 		if user_choice == '1':
-			scrape_data.write_game_logs()
+			scrape_data.write_all()
 			print("")
 			continue
 

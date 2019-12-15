@@ -76,19 +76,14 @@ def round_up(x, a):
 def round_down(x, a):
 	return np.floor(x/a)*a
 
-def get_lines(today_date,year=None):
-	new_year = '2019' if year == None else year
-
+def get_lines(today_date,year):
 	out = {}
-	if year == None:
-		line_url = "https://www.sportsbookreviewsonline.com/scoresoddsarchives/mlb/mlb%20odds%202019.xlsx"
-	else:
-		line_url = "https://www.sportsbookreviewsonline.com/scoresoddsarchives/mlb/mlb%20odds%20" + year + ".xlsx"
+	line_url = "https://www.sportsbookreviewsonline.com/scoresoddsarchives/mlb/mlb%20odds%20" + year + ".xlsx"
 	line_data = requests.get(line_url)
-	output = open('line_data_' + new_year + '.xls', 'wb')
+	output = open('line_data_' + year + '.xls', 'wb')
 	output.write(line_data.content)
 	output.close()
-	lines = pd.read_excel('line_data_' + new_year + '.xls')
+	lines = pd.read_excel('line_data_' + year + '.xls')
 	lines['Month'] = lines['Date'].astype(str).str[:-2]
 	lines['Day'] = lines['Date'].astype(str).str[-2:]
 	lines['Date'] = np.where(lines['Month'].astype(int)<10,'0'+lines['Month']+'/'+lines['Day'],lines['Month']+'/'+lines['Day'])
@@ -212,9 +207,7 @@ def get_missing_lines(missing_dates):
 
 	return lines
 
-def get_game_logs_primary(old_lines,missing_lines,given_date,year=None):
-	new_year = '2019' if year == None else year
-
+def get_game_logs_primary(old_lines,missing_lines,given_date,year):
 	out = {}
 
 	out['Current_Date'] = given_date
@@ -238,7 +231,7 @@ def get_game_logs_primary(old_lines,missing_lines,given_date,year=None):
 		team_lines.index = team_lines.index.get_level_values('Date')
 		team_lines = team_lines.loc[~team_lines.index.duplicated(keep='first')]
 
-		url1 = 'https://www.foxsports.com/mlb/'+str(i).replace('.','').replace(' ','-').lower()+'-team-game-log?season=' + new_year + '&category=HITTER&seasonType=1'
+		url1 = 'https://www.foxsports.com/mlb/'+str(i).replace('.','').replace(' ','-').lower()+'-team-game-log?season=' + year + '&category=HITTER&seasonType=1'
 		gl1 = pd.read_html(url1, header=0, index_col='Date')[0]
 		gl1 = gl1.loc[~gl1.index.duplicated(keep='first')]
 		gl1['PA'] = gl1['AB']+gl1['BB']
@@ -249,7 +242,7 @@ def get_game_logs_primary(old_lines,missing_lines,given_date,year=None):
 
 		gl_temp = pd.concat([team_lines, gl1], axis=1, sort=True)
 
-		url2 = 'https://www.foxsports.com/mlb/'+str(i).replace('.','').replace(' ','-').lower()+'-team-game-log?season=' + new_year + '&category=PITCHER&seasonType=1'
+		url2 = 'https://www.foxsports.com/mlb/'+str(i).replace('.','').replace(' ','-').lower()+'-team-game-log?season=' + year + '&category=PITCHER&seasonType=1'
 		gl2 = pd.read_html(url2, header=0, index_col='Date')[0]
 		gl2 = gl2.loc[~gl2.index.duplicated(keep='first')]
 		gl2 = gl2[['BFP','R','ER','H','HR','BB','SO']]
@@ -328,14 +321,12 @@ def get_game_logs_primary(old_lines,missing_lines,given_date,year=None):
 		os.mkdir('/Users/kalebryler/Desktop/MLB_Project/Game_Log_Files')
 		os.chdir('/Users/kalebryler/Desktop/MLB_Project/Game_Log_Files')
 
-	with open('game_logs_primary_' + new_year + '.txt', 'w') as file:
+	with open('game_logs_primary_' + year + '.txt', 'w') as file:
 		file.write(json.dumps(out))
 
 	return out
 
-def get_game_logs_secondary(primary_logs,given_date,year=None):
-	new_year = '2019' if year == None else year
-
+def get_game_logs_secondary(primary_logs,given_date,year):
 	out = {}
 	out['Current_Date'] = given_date
 
@@ -554,18 +545,16 @@ def get_game_logs_secondary(primary_logs,given_date,year=None):
 		os.mkdir('/Users/kalebryler/Desktop/MLB_Project/Game_Log_Files')
 		os.chdir('/Users/kalebryler/Desktop/MLB_Project/Game_Log_Files')
 
-	with open('game_logs_' + new_year + '.txt', 'w') as file:
+	with open('game_logs_' + year + '.txt', 'w') as file:
 		file.write(json.dumps(out))
 
 	return out
 
-def return_lines(new_date,year=None):
-	new_year = '2019' if year == None else year
-
+def return_lines(new_date,year):
 	lines = get_lines(new_date,year)
-	print(new_year + ' Lines Found')
+	print(year + ' Lines Found')
 
-	if new_date == "OFFSEASON" or year == None:
+	if new_date == "OFFSEASON" or int(year) < 2020:
 		missing_dates = []
 	else:
 		missing_dates = []
@@ -577,44 +566,40 @@ def return_lines(new_date,year=None):
 		    missing_dates.append(last.strftime("2019%m%d"))
 
 	missing_lines = get_missing_lines(missing_dates)
-	print(new_year + ' Missing Lines Found')
+	print(year + ' Missing Lines Found')
 
 	return lines,missing_lines
 
-def check_return_primary(new_date,year=None):
-	new_year = '2019' if year == None else year
-
+def check_return_primary(new_date,year):
 	try:
-		primary_logs = open('game_logs_primary_' + new_year + '.txt', 'r')
+		primary_logs = open('game_logs_primary_' + year + '.txt', 'r')
 		primary_game_logs = json.load(primary_logs)
 
-		if primary_game_logs['Current_Date'] == new_date or year == None:
-			print(new_year + ' Primary Game Logs Found')
+		if primary_game_logs['Current_Date'] == new_date or int(year) < 2020:
+			print(year + ' Primary Game Logs Found')
 			return primary_game_logs
 
 		else:
-			lines,missing_lines = return_lines(year)
+			lines,missing_lines = return_lines(new_date,year)
 			primary_game_logs = get_game_logs_primary(lines['Lines'],missing_lines,new_date,year)
-			print(new_year + ' Primary Game Logs Found')
+			print(year + ' Primary Game Logs Found')
 
 			return primary_game_logs
 
 	except:
-		lines,missing_lines = return_lines(year)
+		lines,missing_lines = return_lines(new_date,year)
 		primary_game_logs = get_game_logs_primary(lines['Lines'],missing_lines,new_date,year)
-		print(new_year + ' Primary Game Logs Found')
+		print(year + ' Primary Game Logs Found')
 
 		return primary_game_logs
 
-def check_return_secondary(new_date,year=None):
-	new_year = '2019' if year == None else year
-
+def check_return_secondary(new_date,year):
 	try:
-		hist_logs = open('game_logs_' + new_year + '.txt', 'r')
+		hist_logs = open('game_logs_' + year + '.txt', 'r')
 		game_logs = json.load(hist_logs)
 
-		if game_logs['Current_Date'] == new_date or year == None:
-			print(new_year + ' Game Logs Found')
+		if game_logs['Current_Date'] == new_date or int(year) < 2020:
+			print(year + ' Game Logs Found')
 			return game_logs
 
 		else:
@@ -624,11 +609,11 @@ def check_return_secondary(new_date,year=None):
 
 	except:
 		primary_logs = check_return_primary(new_date,year)
-		game_logs = get_game_logs_secondary(primary_logs,new_date)
-		print(new_year + ' Game Logs Found')
+		game_logs = get_game_logs_secondary(primary_logs,new_date,year)
+		print(year + ' Game Logs Found')
 		return game_logs
 
-def check_return_logs(year=None):
+def check_return_logs(year):
 	today_date = datetime.now(pytz.timezone("America/New_York"))
 
 	if today_date.month > 10 or (today_date.month < 4 and today_date.day < 15):
@@ -646,15 +631,14 @@ def check_return_logs(year=None):
 
 	return game_logs
 
-def write_game_logs():
-	game_logs = check_return_logs()
-	game_logs_2018 = check_return_logs('2018')
+def write_logs(year):
+	game_logs = check_return_logs(year)
 
 	try:
-		os.chdir('/Users/kalebryler/Desktop/MLB_Project/2019_Game_Logs')
+		os.chdir('/Users/kalebryler/Desktop/MLB_Project/' + year + '_Game_Logs')
 	except:
-		os.mkdir('/Users/kalebryler/Desktop/MLB_Project/2019_Game_Logs')
-		os.chdir('/Users/kalebryler/Desktop/MLB_Project/2019_Game_Logs')
+		os.mkdir('/Users/kalebryler/Desktop/MLB_Project/' + year + '_Game_Logs')
+		os.chdir('/Users/kalebryler/Desktop/MLB_Project/' + year + '_Game_Logs')
 
 	teams = ['All_Teams','St. Louis Cardinals', 'Toronto Blue Jays', 'Los Angeles Angels', 'New York Yankees', 'Arizona Diamondbacks', 'San Diego Padres', 'Atlanta Braves', 'Oakland Athletics', 'Boston Red Sox', 'Cleveland Indians', 'Miami Marlins', 'Colorado Rockies', 'Milwaukee Brewers', 'Houston Astros', 'Minnesota Twins', 'Cincinnati Reds', 'New York Mets', 'Detroit Tigers', 'Philadelphia Phillies', 'Chicago Cubs', 'Seattle Mariners', 'Los Angeles Dodgers', 'San Francisco Giants', 'Pittsburgh Pirates', 'Texas Rangers', 'Chicago White Sox', 'Tampa Bay Rays', 'Kansas City Royals', 'Baltimore Orioles', 'Washington Nationals']
 
@@ -664,21 +648,10 @@ def write_game_logs():
 		file_name = i.replace(' ','_').replace('.','') + ".csv"
 		team.to_csv(file_name)
 
-	print("2019 Game Logs Written")
+	print(year + " Game Logs Written")
 
-	try:
-		os.chdir('/Users/kalebryler/Desktop/MLB_Project/2018_Game_Logs')
-	except:
-		os.mkdir('/Users/kalebryler/Desktop/MLB_Project/2018_Game_Logs')
-		os.chdir('/Users/kalebryler/Desktop/MLB_Project/2018_Game_Logs')
-
-	for i in teams:
-		team = pd.read_json(game_logs_2018[i],orient='index')
-		team.set_index('Date',inplace=True)
-		file_name = i.replace(' ','_').replace('.','') + ".csv"
-		team.to_csv(file_name)
-
-	print("2018 Game Logs Written")
-
+def write_all():
+	for year in ['2019','2018','2017','2016']:
+		write_logs(year)
 
 #########
