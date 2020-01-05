@@ -1,0 +1,1 @@
+The program is an interactive platform that allows users to scrape historical data and predict betting outcomes (Win, Cover, Over/Under, and First 5 Inning Over/Under) using a neural network. The platform allows users to generate predictions for individual games, dates, or entire seasons.
