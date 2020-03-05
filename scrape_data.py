@@ -251,7 +251,10 @@ def get_game_logs_primary(old_lines,missing_lines,given_date,year):
 		gl2 = gl2[['Pitch_Rating']]
 
 		gl_new = pd.concat([gl_temp, gl2], axis=1, sort=True)
-		gl_new = gl_new.loc[~gl_new.index.duplicated(keep='first')][:new_tomorrow]
+		if given_date=='OFFSEASON':
+			gl_new = gl_new.loc[~gl_new.index.duplicated(keep='first')]
+		else:
+			gl_new = gl_new.loc[~gl_new.index.duplicated(keep='first')][:new_tomorrow]
 		gl_new['Net_Rating'] = gl_new['Hit_Rating'] + gl_new['Pitch_Rating']
 		gl_new['Drop'] = np.select([(gl_new['Net_Rating']!=gl_new['Net_Rating'])&(gl_new['Net_Rating'].shift(-1)==gl_new['Net_Rating'].shift(-1)),(gl_new['Net_Rating']!=gl_new['Net_Rating'])&(gl_new['Net_Rating'].shift(-2)==gl_new['Net_Rating'].shift(-2))],[np.nan,np.nan],1)
 		gl_new = gl_new.dropna(subset=['Drop'])
@@ -456,7 +459,6 @@ def get_game_logs_secondary(primary_logs,given_date,year):
 	total_df.set_index(['Date','Team_Name'],inplace=True)
 	total_df = total_df.sort_values('Date')
 
-
 	for stat in ['Win','Hit','Pitch','Over','F5_Over','Cover']:
 
 		new_stat = 'True_'+str(stat)
@@ -616,7 +618,7 @@ def check_return_secondary(new_date,year):
 def check_return_logs(year):
 	today_date = datetime.now(pytz.timezone("America/New_York"))
 
-	if today_date.month > 10 or (today_date.month < 4 and today_date.day < 15):
+	if today_date.month > 10 or (today_date.month < 4 and today_date.day < 15) or int(year) < 2020:
 		new_date = "OFFSEASON"
 	else:
 		new_date = today_date.strftime("%m/%d")
@@ -651,7 +653,7 @@ def write_logs(year):
 	print(year + " Game Logs Written")
 
 def write_all():
-	for year in ['2019','2018','2017','2016']:
+	for year in ['2019','2018']:
 		write_logs(year)
 
 #########

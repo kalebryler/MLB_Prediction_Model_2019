@@ -273,7 +273,7 @@ def model_game(team_name,outcome,date,import_mlb_model=None,import_past_model=No
 		opp_team_mlb_model.predict_given(opp_team_data['Inputs'][-1],opp_team_data['Outputs'][-1],opp_team_data['Payout'][-1],opp_team_data['Info'][-1])
 
 	if import_past_model == None:
-		past_data = get_data('All_Teams','All_Teams',outcome,date,['2018','2017','2016'],30)
+		past_data = get_data('All_Teams','All_Teams',outcome,date,['2018'],30)
 
 		past_model = NeuralNet(past_data['Inputs'],past_data['Outputs'],past_data['Payout'],past_data['Info'])
 		past_model.model()
@@ -295,22 +295,20 @@ def model_game(team_name,outcome,date,import_mlb_model=None,import_past_model=No
 	d['Matchup'] = model.game_results['Matchup'][0]
 
 	if outcome == 'Win' or outcome == 'Cover':
-		# score = np.sum([3*model.game_results['Predicted'][0],3-3*opp_model.game_results['Predicted'][0],2*team_mlb_model.given_results['Predicted'][0],2-2*opp_team_mlb_model.given_results['Predicted'][0],team_past_model.given_results['Predicted'][0],1-opp_team_past_model.given_results['Predicted'][0]])/12
-		score = np.sum([2*model.game_results['Predicted'][0],2-2*opp_model.game_results['Predicted'][0],team_mlb_model.given_results['Predicted'][0],1-opp_team_mlb_model.given_results['Predicted'][0],2*team_past_model.given_results['Predicted'][0],2-2*opp_team_past_model.given_results['Predicted'][0]])/10
-		# score = np.sum([model.game_results['Predicted'][0],1-opp_model.game_results['Predicted'][0],])/2
+		score = np.sum([2*model.game_results['Predicted'][0],2-2*opp_model.game_results['Predicted'][0],team_mlb_model.given_results['Predicted'][0],1-opp_team_mlb_model.given_results['Predicted'][0],team_past_model.given_results['Predicted'][0],1-opp_team_past_model.given_results['Predicted'][0]])/8
 
 		if score >= 0.8:
 			d['Action'] = team_name + ' ' + outcome.replace('_',' ')
 			d['Bet'] = 1
-			d['Confidence'] = np.sum([3*model.game_results['Test_Accuracy'][0],3*opp_model.game_results['Test_Accuracy'][0],2*team_mlb_model.given_results['Test_Accuracy'][0],2*opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/12
+			d['Confidence'] = np.sum([2*model.game_results['Test_Accuracy'][0],2*opp_model.game_results['Test_Accuracy'][0],team_mlb_model.given_results['Test_Accuracy'][0],opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/8
 			d['ML'] = model.game_results['ML'][0]
 			d['Success'] = np.where(model.game_results['Actual'][0]==1,1,0).item(0)
 			d['Payout'] = np.where(d['Success']==1,d['ML'],-1).item(0)
 
-		if score >= 0.6:
+		if score >= 0.7:
 			d['Action'] = team_name + ' ' + outcome.replace('_',' ')
 			d['Bet'] = 0.5
-			d['Confidence'] = np.sum([3*model.game_results['Test_Accuracy'][0],3*opp_model.game_results['Test_Accuracy'][0],2*team_mlb_model.given_results['Test_Accuracy'][0],2*opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/12
+			d['Confidence'] = np.sum([2*model.game_results['Test_Accuracy'][0],2*opp_model.game_results['Test_Accuracy'][0],team_mlb_model.given_results['Test_Accuracy'][0],opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/8
 			d['ML'] = model.game_results['ML'][0]
 			d['Success'] = np.where(model.game_results['Actual'][0]==1,1,0).item(0)
 			d['Payout'] = np.where(d['Success']==1,d['ML']/2,-0.5).item(0)
@@ -318,15 +316,15 @@ def model_game(team_name,outcome,date,import_mlb_model=None,import_past_model=No
 		elif score <= 0.2:
 			d['Action'] = opp_team_name + ' ' + outcome.replace('_',' ')
 			d['Bet'] = 1
-			d['Confidence'] = np.sum([3*model.game_results['Test_Accuracy'][0],3*opp_model.game_results['Test_Accuracy'][0],2*team_mlb_model.given_results['Test_Accuracy'][0],2*opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/12
+			d['Confidence'] = np.sum([2*model.game_results['Test_Accuracy'][0],2*opp_model.game_results['Test_Accuracy'][0],team_mlb_model.given_results['Test_Accuracy'][0],opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/8
 			d['ML'] = opp_model.game_results['ML'][0]
 			d['Success'] = np.where(model.game_results['Actual'][0]==0,1,0).item(0)
 			d['Payout'] = np.where(d['Success']==1,d['ML'],-1).item(0)
 
-		elif score <= 0.4:
+		elif score <= 0.3:
 			d['Action'] = opp_team_name + ' ' + outcome.replace('_',' ')
 			d['Bet'] = 0.5
-			d['Confidence'] = np.sum([3*model.game_results['Test_Accuracy'][0],3*opp_model.game_results['Test_Accuracy'][0],2*team_mlb_model.given_results['Test_Accuracy'][0],2*opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/12
+			d['Confidence'] = np.sum([2*model.game_results['Test_Accuracy'][0],2*opp_model.game_results['Test_Accuracy'][0],team_mlb_model.given_results['Test_Accuracy'][0],opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/8
 			d['ML'] = opp_model.game_results['ML'][0]
 			d['Success'] = np.where(model.game_results['Actual'][0]==0,1,0).item(0)
 			d['Payout'] = np.where(d['Success']==1,d['ML']/2,-0.5).item(0)
@@ -334,26 +332,26 @@ def model_game(team_name,outcome,date,import_mlb_model=None,import_past_model=No
 		else:
 			d['Action'] = 'None'
 			d['Bet'] = 0
-			d['Confidence'] = np.sum([3*model.game_results['Test_Accuracy'][0],3*opp_model.game_results['Test_Accuracy'][0],2*team_mlb_model.given_results['Test_Accuracy'][0],2*opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/12
+			d['Confidence'] = np.sum([2*model.game_results['Test_Accuracy'][0],2*opp_model.game_results['Test_Accuracy'][0],team_mlb_model.given_results['Test_Accuracy'][0],opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/8
 			d['ML'] = model.game_results['ML'][0]
 			d['Success'] = np.nan
 			d['Payout'] = 0
 
 	elif outcome == 'Over' or outcome == 'F5_Over':
-		score = np.sum([3*model.game_results['Predicted'][0],3*opp_model.game_results['Predicted'][0],2*team_mlb_model.given_results['Predicted'][0],2*opp_team_mlb_model.given_results['Predicted'][0],team_past_model.given_results['Predicted'][0],opp_team_past_model.given_results['Predicted'][0]])/12
+		score = np.sum([2*model.game_results['Predicted'][0],2*opp_model.game_results['Predicted'][0],team_mlb_model.given_results['Predicted'][0],opp_team_mlb_model.given_results['Predicted'][0],team_past_model.given_results['Predicted'][0],opp_team_past_model.given_results['Predicted'][0]])/8
 
 		if score >= 0.8:
 			d['Action'] = 'Total ' + outcome.replace('_',' ')
 			d['Bet'] = 1
-			d['Confidence'] = np.sum([3*model.game_results['Test_Accuracy'][0],3*opp_model.game_results['Test_Accuracy'][0],2*team_mlb_model.given_results['Test_Accuracy'][0],2*opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/12
+			d['Confidence'] = np.sum([2*model.game_results['Test_Accuracy'][0],2*opp_model.game_results['Test_Accuracy'][0],team_mlb_model.given_results['Test_Accuracy'][0],opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/8
 			d['ML'] = model.game_results['Over_ML'][0]
 			d['Success'] = np.where(model.game_results['Actual'][0]==1,1,0).item(0)
 			d['Payout'] = np.where(d['Success']==1,d['ML'],-1).item(0)
 
-		if score >= 0.6:
+		if score >= 0.7:
 			d['Action'] = 'Total ' + outcome.replace('_',' ')
 			d['Bet'] = 0.5
-			d['Confidence'] = np.sum([3*model.game_results['Test_Accuracy'][0],3*opp_model.game_results['Test_Accuracy'][0],2*team_mlb_model.given_results['Test_Accuracy'][0],2*opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/12
+			d['Confidence'] = np.sum([2*model.game_results['Test_Accuracy'][0],2*opp_model.game_results['Test_Accuracy'][0],team_mlb_model.given_results['Test_Accuracy'][0],opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/8
 			d['ML'] = model.game_results['Over_ML'][0]
 			d['Success'] = np.where(model.game_results['Actual'][0]==1,1,0).item(0)
 			d['Payout'] = np.where(d['Success']==1,d['ML']/2,-0.5).item(0)
@@ -361,15 +359,15 @@ def model_game(team_name,outcome,date,import_mlb_model=None,import_past_model=No
 		elif score <= 0.2:
 			d['Action'] = 'Total ' + outcome.replace('_Over',' Under')
 			d['Bet'] = 1
-			d['Confidence'] = np.sum([3*model.game_results['Test_Accuracy'][0],3*opp_model.game_results['Test_Accuracy'][0],2*team_mlb_model.given_results['Test_Accuracy'][0],2*opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/12
+			d['Confidence'] = np.sum([2*model.game_results['Test_Accuracy'][0],2*opp_model.game_results['Test_Accuracy'][0],team_mlb_model.given_results['Test_Accuracy'][0],opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/8
 			d['ML'] = opp_model.game_results['Under_ML'][0]
 			d['Success'] = np.where(model.game_results['Actual'][0]==0,1,0).item(0)
 			d['Payout'] = np.where(d['Success']==1,d['ML'],-1).item(0)
 
-		elif score <= 0.4:
+		elif score <= 0.3:
 			d['Action'] = 'Total ' + outcome.replace('_Over',' Under')
 			d['Bet'] = 0.5
-			d['Confidence'] = np.sum([3*model.game_results['Test_Accuracy'][0],3*opp_model.game_results['Test_Accuracy'][0],2*team_mlb_model.given_results['Test_Accuracy'][0],2*opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/12
+			d['Confidence'] = np.sum([2*model.game_results['Test_Accuracy'][0],2*opp_model.game_results['Test_Accuracy'][0],team_mlb_model.given_results['Test_Accuracy'][0],opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/8
 			d['ML'] = opp_model.game_results['Under_ML'][0]
 			d['Success'] = np.where(model.game_results['Actual'][0]==0,1,0).item(0)
 			d['Payout'] = np.where(d['Success']==1,d['ML']/2,-0.5).item(0)
@@ -377,7 +375,7 @@ def model_game(team_name,outcome,date,import_mlb_model=None,import_past_model=No
 		else:
 			d['Action'] = 'None'
 			d['Bet'] = 0
-			d['Confidence'] = np.sum([3*model.game_results['Test_Accuracy'][0],3*opp_model.game_results['Test_Accuracy'][0],2*team_mlb_model.given_results['Test_Accuracy'][0],2*opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/12
+			d['Confidence'] = np.sum([2*model.game_results['Test_Accuracy'][0],2*opp_model.game_results['Test_Accuracy'][0],team_mlb_model.given_results['Test_Accuracy'][0],opp_team_mlb_model.given_results['Test_Accuracy'][0],team_past_model.given_results['Test_Accuracy'][0],opp_team_past_model.given_results['Test_Accuracy'][0]])/8
 			d['ML'] = model.game_results['Over_ML'][0]
 			d['Success'] = np.nan
 			d['Payout'] = 0
@@ -429,7 +427,7 @@ def model_date(outcome,date,silence=None):
 	mlb_model = NeuralNet(mlb_data['Inputs'],mlb_data['Outputs'],mlb_data['Payout'],mlb_data['Info'])
 	mlb_model.model()
 
-	past_data = get_data('All Teams','All_Teams',outcome,date,['2018','2017','2016'],30)
+	past_data = get_data('All Teams','All_Teams',outcome,date,['2018'],30)
 
 	past_model = NeuralNet(past_data['Inputs'],past_data['Outputs'],past_data['Payout'],past_data['Info'])
 	past_model.model()
@@ -617,7 +615,7 @@ def model_mlb_season_all(silence=None):
 def model_date_range(outcome,start_date,end_date,silence=None):
 	d = []
 
-	mlb_df = read_file('All_Teams')
+	mlb_df = read_file('All_Teams','2019')
 	mlb_df.sort_values('Date',inplace=True)
 	dates = list(mlb_df.index.unique())
 
@@ -646,7 +644,7 @@ def model_date_range(outcome,start_date,end_date,silence=None):
 def model_date_range_all(start_date,end_date,silence=None):
 	d = []
 
-	mlb_df = read_file('All_Teams')
+	mlb_df = read_file('All_Teams','2019')
 	mlb_df.sort_values('Date',inplace=True)
 	dates = list(mlb_df.index.unique())
 
