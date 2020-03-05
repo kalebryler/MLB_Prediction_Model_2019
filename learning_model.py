@@ -575,7 +575,7 @@ def model_mlb_season(outcome,silence=None):
 			d.append(g)
 			print(date + ' Complete')
 		except:
-			pass
+			print(date + ' Not Found')
 	
 	df = pd.concat(d,axis=0)
 
@@ -602,8 +602,9 @@ def model_mlb_season_all(silence=None):
 			try:
 				g = model_date(outcome,date,silence=True)
 				d.append(g)
+				print(date + ' ' + outcome + ' Complete')
 			except:
-				pass
+				print(date + ' Not Found')
 	
 	df = pd.concat(d,axis=0)
 
