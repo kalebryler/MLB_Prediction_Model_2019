@@ -570,9 +570,12 @@ def model_mlb_season(outcome,silence=None):
 	dates = list(mlb_df.index.unique())
 
 	for date in dates[30:]:
-		g = model_date(outcome,date,silence=True)
-		d.append(g)
-		print(date + ' Complete')
+		try:
+			g = model_date(outcome,date,silence=True)
+			d.append(g)
+			print(date + ' Complete')
+		except:
+			pass
 	
 	df = pd.concat(d,axis=0)
 
@@ -596,8 +599,11 @@ def model_mlb_season_all(silence=None):
 
 	for date in dates[30:]:
 		for outcome in ['Win','Cover','Over','F5_Over']:
-			g = model_date(outcome,date,silence=True)
-			d.append(g)
+			try:
+				g = model_date(outcome,date,silence=True)
+				d.append(g)
+			except:
+				pass
 	
 	df = pd.concat(d,axis=0)
 
